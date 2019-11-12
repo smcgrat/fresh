@@ -1,0 +1,34 @@
+#!/bin/bash
+
+usage {
+	echo "Bash scripting to automate FreeSurfer usage"
+	echo "Use at your own risk, no warranty is provided"
+	echo "Flags explained"
+	echo "	-s Subject ID"
+	echo "	-d Directory where subject data is located"
+	echo "	   (if not specified assumes current directory)"
+	echo ""
+}
+
+# get the flags
+while getopts "s:d:u" OPTION
+do
+	case $OPTION in
+		s)
+			subject=$OPTARG
+			;;
+		d)
+			directory=$OPTARG
+			;;
+		?)
+			usage
+			exit
+			;;
+	esac
+done
+
+if [ -z "$directory" ]; then
+	directory=$(pwd)
+fi
+
+exit 0
