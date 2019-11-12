@@ -10,6 +10,27 @@ usage {
 	echo ""
 }
 
+do_recon_all_3_tp {
+
+	## mechanism to over write the subject id by passing a different one
+	## as the first argument to this function, if needed. 
+	## Defaults to global otherwise.
+	if [ -z "$1" ]; then
+		local subject="$1"
+	else
+		local subject="$subject"
+	fi
+
+	## the steps that need to be carried out
+	mri_convert -cs 0.9 $directory/$subject_w1_T1_FP.nii.gz $directory/$subject_w1_T1_FP_RS.nii.gz
+	recon-all -i $directory/$subject_w1_T1_FP_RS.nii.gz -s $subject_w1
+	recon-all  -all -3T -cm -openmp 8 -T2 $directory/$subject_w1_T2_FP.nii.gz -T2pial -s $directory/$subject_w1 -hippocampal-subfields-T1T2 $directory/$subject_w1_T2_FP.nii.gz T1andT2_based -parallel -openmp 8
+
+	## FIXME
+	## are the subject file names going to be consistent?
+	## i.e. will it always be $subject_w1_T1_FP_RS.nii.gz ??
+}
+
 # get the flags
 while getopts "s:d:u" OPTION
 do
@@ -30,5 +51,10 @@ done
 if [ -z "$directory" ]; then
 	directory=$(pwd)
 fi
+export SUBJECTS_DIR=$directory
+echo "SUBJECTS_DIR = $directory"
+echo "Subject ID = $subject"
+
+do_recon_all_3_tp
 
 exit 0
