@@ -27,6 +27,15 @@ do_recon_all_3_tp {
 	recon-all  -all -3T -cm -openmp 8 -T2 $directory/$subject_w1_T2_FP.nii.gz -T2pial -s $directory/$subject_w1 -hippocampal-subfields-T1T2 $directory/$subject_w1_T2_FP.nii.gz T1andT2_based -parallel -openmp 8
 
 	## FIXME
+	## this needs to be setup properly
+	#source $envscriptsdir/freesurfer-dev-version.sh
+
+	segmentHA_T1.sh $subject
+	segmentHA_T2.sh $subject $directory/$subject_w1_T2_FP.nii.gz T1andT2_based 1
+	segmentBS.sh $subject_w1
+	segmentThalamicNuclei.sh $subject_w1
+
+	## FIXME
 	## are the subject file names going to be consistent?
 	## i.e. will it always be $subject_w1_T1_FP_RS.nii.gz ??
 }
