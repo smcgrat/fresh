@@ -21,23 +21,123 @@ do_recon_all_3_tp {
 		local subject="$subject"
 	fi
 
+	## AFNI steps for F
+	
+
+	module purge
+	module load tcin freesurfer/6.0 
+
 	## the steps that need to be carried out
-	mri_convert -cs 0.9 $directory/$subject_w1_T1_FP.nii.gz $directory/$subject_w1_T1_FP_RS.nii.gz
-	recon-all -i $directory/$subject_w1_T1_FP_RS.nii.gz -s $subject_w1
-	recon-all  -all -3T -cm -openmp 8 -T2 $directory/$subject_w1_T2_FP.nii.gz -T2pial -s $directory/$subject_w1 -hippocampal-subfields-T1T2 $directory/$subject_w1_T2_FP.nii.gz T1andT2_based -parallel -openmp 8
+	## Needed by Erik currently
+	## FIXME
+	#mri_convert -cs 0.9 $directory/$subject_w1_T1_FP.nii.gz $directory/$subject_w1_T1_FP_RS.nii.gz
+
+	## FIXME
+	## NB NB NB
+	## BIDS may make the naming conventions easier
+	## this happens on 3 different files for the same subject but different time points
+	## need to figure out a way of automating for the naming convention
+	## resampling naming convnetion also applies here
+	recon-all -i $file1 -s $subject_$wavenumber
+	recon-all -i $file2 -s $subject_$wavenumber
+	recon-all -i $file3 -s $subject_$wavenumber
+		## `--> -s flag outputs to the named subject directory
+	#recon-all  -all -3T -cm -openmp 8 -T2 $directory/$subject_w1_T2_FP.nii.gz -T2pial -s $directory/$subject_w1 -hippocampal-subfields-T1T2 $directory/$subject_w1_T2_FP.nii.gz T1andT2_based -parallel -openmp 8
+	
+	## F's settings
+	## FIXME - placment of this var
+	## each of the following steps takes about 12 hours
+	## to run on each waves data for the subject
+	## FIXME - the -s flag's input
+	cores=12
+	recon-all -all -3T -parallel -openmp $cores -s $subject_$postpend -hippocampal-subfields-T1
+	recon-all -all -3T -parallel -openmp $cores -s $subject_$postpend -hippocampal-subfields-T1
+	recon-all -all -3T -parallel -openmp $cores -s $subject_$postpend -hippocampal-subfields-T1
 
 	## FIXME
 	## this needs to be setup properly
 	#source $envscriptsdir/freesurfer-dev-version.sh
 
-	segmentHA_T1.sh $subject
-	segmentHA_T2.sh $subject $directory/$subject_w1_T2_FP.nii.gz T1andT2_based 1
-	segmentBS.sh $subject_w1
-	segmentThalamicNuclei.sh $subject_w1
+	## developmental FreeSurfer
+	
+	module purge
+	module load tcin freesurfer/6-dev-20180918
+	export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$cores
+
+	## FIXME - $timepoint var needs defining & is different for each
+	segmentHA_T1.sh $subject_$timepoint
+	segmentHA_T1.sh $subject_$timepoint
+	segmentHA_T1.sh $subject_$timepoint
+
+	## Not needed for F
+	#segmentHA_T2.sh $subject $directory/$subject_w1_T2_FP.nii.gz T1andT2_based 1
+
+	## FIXME - $timepoint var needs defining & is different for each
+	segmentBS.sh $subject_$timepoint
+	segmentBS.sh $subject_$timepoint
+	segmentBS.sh $subject_$timepoint
+
+	## FIXME - $timepoint var needs defining & is different for each
+	segmentThalamicNuclei.sh $subject_$timepoint
+	segmentThalamicNuclei.sh $subject_$timepoint
+	segmentThalamicNuclei.sh $subject_$timepoint
+
+	## longitudianal
+
+	module purge
+	module load tcin freesurfer/6.0 
+
+	## FIXME - check this variable
+	## NB NB NB
+	local subjectid=""$subhect"base"
+
+	## file naming convention assumptions
+	## first rule of this conenvention, underscores to be used as the seperator
+	## Componets
+	## Subject ID
+	## Wave
+	## Resampling // _rs
+	## leads to following structure
+	## subjectID_resampled_wave
+	## Assuming over ever 3 time series per subject
+	## the first set of test data will not have been resampled so the file name convention will be:
+	## subjectID_w1/2/3 for the time series
+
+	## FIXME
+	## NB NB
+	## variable naming is broken here
+	## convention is subjectid subjectidFU2 subjectidFU3
+	recon-all -base "$subject"base  -tp $subject_$timepoint1 -tp $subject_timepoint2 -tp $subject_timepoint3 -all
+
+	## FIXME - prob going to be hitting the wall clock limit soon
+
+	## FIXME - does "$subject"base work??
+	# run step 2 for the longitudinal pipeline
+	## FIXME - E - does this need all 3 or just the last one? Also, is -parallel applicable?
+	#recon-all -long "$subject"_$timepoint1 "$subject"base -all
+	#recon-all -long "$subject"_$timepoint2 "$subject"base -all
+	recon-all -long "$subject"_$timepoint3 "$subject"base -all
+
+	module purge
+	module load tcin freesurfer/6-dev-20180918
+	export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$cores
+
+	segmentHA_T1_long.sh "$subject"base
+
+	segmentBS.sh $subject_$timeseries1.long."$subject"base
+	segmentBS.sh $subject_$timeseries2.long."$subject"base
+	segmentBS.sh $subject_$timeseries3.long."$subject"base
+
+	segmentThalamicNuclei.sh $subect_$timeseries1.long."$subject"base
+	segmentThalamicNuclei.sh $subect_$timeseries2.long."$subject"base
+	segmentThalamicNuclei.sh $subect_$timeseries3.long."$subject"base
 
 	## FIXME
 	## are the subject file names going to be consistent?
 	## i.e. will it always be $subject_w1_T1_FP_RS.nii.gz ??
+
+	
+
 }
 
 # get the flags
@@ -49,6 +149,12 @@ do
 			;;
 		d)
 			directory=$OPTARG
+			;;
+		f)
+			file=$OPTARG
+			;;
+		p)
+			postpend=$OPTARG
 			;;
 		?)
 			usage
