@@ -1,6 +1,10 @@
 #!/bin/bash
 #
 
+function freshlog {
+	echo "fresh log | $(date '+%Y-%m-%d %H:%M:%S') | $* "
+}
+
 ## ANSI art :-)
 function intro {
 	freshlog " __                _"
@@ -53,11 +57,6 @@ function usage {
 	freshlog "	-c <specify output file for mri_convert to convert -f reference to>"
 	freshlog "	-u [Print this help message]"
 	freshlog "	-h [Print this help message]"
-
-}
-
-function freshlog {
-	echo "fresh log | $(date '+%Y-%m-%d %H:%M:%S') " | " $* "
 }
 
 function sane {
