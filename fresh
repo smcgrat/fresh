@@ -1,39 +1,77 @@
 #!/bin/bash
+#
 
-## ---------------------------------- ##
-## file naming convention assumptions ##
-## ---------------------------------- ##
-## first rule of this conenvention, underscores to be used as the seperator
-## Componets
-## - Subject ID
-## - Wave
-## - Resampling // _rs
-## leads to following structure: subjectID_resampled_wave
-## the first set of test data will not have been resampled
-## so the file name convention will be: subjectID_w1/2/3 for the time series
-
-function usage {
-	echo "Bash scripting to automate FreeSurfer usage"
-	echo "Use at your own risk, no warranty is provided"
-	echo "Flags explained"
-	echo "	-s Subject ID"
-	echo "	-d Directory where subject data is located"
-	echo "	   (if not specified assumes current directory)"
-	echo ""
+## ANSI art :-)
+function intro {
+	freshlog " __                _"
+	freshlog "/ _|              | |"
+	freshlog "| |_ _ __ ___  ___| |___"
+	freshlog "|  _| '__/ _ \/ __| '_  \ "
+	freshlog "| | | | |  __/\__ \ | | |"
+	freshlog "|_| |_|  \___||___/_| |_|"
+	freshlog ""
 }
 
-function test {
+intro
+
+function exciting {
+	freshlog "# -------------- #"
+	freshlog "Pipelines Complete"
+	freshlog ""
+	freshlog "               _ _   _             "
+	freshlog "              (_) | (_)            "
+	freshlog "  _____  _____ _| |_ _ _ __   ____ "
+	freshlog " / _ \ \/ / __| | __| | '_ \ / _  |"
+	freshlog "|  __/>  < (__| | |_| | | | | (_| |"
+	freshlog " \___/_/\_\___|_|\__|_|_| |_|\__, |"
+	freshlog "                              __/ |"
+	freshlog "                             |___/ "
+	freshlog ""
+	exit 0
+}
+
+function usage {
+	freshlog "Bash scripting to automate FreeSurfer usage"
+	freshlog "Use at your own risk, no warranty is provided"
+	freshlog "Flags explained"
+	freshlog "	-s <Subject ID>"
+	freshlog "	-d <Directory where subject data is located>"
+	freshlog "			[if not specified assumes current directory]"
+	freshlog "	-f <NII file to work on>"
+	freshlog "	-w <wave/time_series>"
+	freshlog "			(multiple instances of this flag possible)"
+	freshlog "	-k [If this flag is used the recon-all -all pipelines are skipped]"
+	freshlog "	-l [If this flag is used the longitudinal pipelines are skipped]"
+	freshlog "	-r [If this flag is used the data has NOT been resampled]"
+	freshlog "	-n <number of processor cores to work with for parallel pipelines>"
+	freshlog "			[if not set defaults to slurm setting]"
+	freshlog "	-a <afni input file>"
+	freshlog "	-z <afni output file>"
+	freshlog "	-p [If this flag is passed ONLY the reconan-all -i steps will be done]"
+	freshlog "			[No other pipelines will be carried out]"
+	freshlog "			[And this only works on one file and time series / wave at a time]"
+	freshlog "	-c <specify output file for mri_convert to convert -f reference to>"
+	freshlog "	-u [Print this help message]"
+	freshlog "	-h [Print this help message]"
+
+}
+
+function freshlog {
+	echo "fresh log | $(date '+%Y-%m-%d %H:%M:%S') " | " $* "
+}
+
+function sane {
+		freshlog "Doing - $*"
 		"$@"
 		local status=$?
 		if [ $status -ne 0 ]; then
-				echo "**** ERROR WITH: $1" >&2
-				problem=yes
+				freshlog "**** ERROR WITH: $1" >&2
+				freshlog "Exiting because of the previous error"
+				exit 101
 		fi
-		return $status
+		#return $status
+		freshlog "Done"
 }
-
-## assuming the number of cores is being dictated by a slurm allocation
-cores="$SLURM_TASKS_PER_NODE"
 
 function env_setup {
 
@@ -41,125 +79,178 @@ function env_setup {
 	module purge
 	module load tcin
 
-	# stable FreeSurfer
-	if [ "$1" = "stabe" ]; then
+	if [ "$1" = "stable" ]; then
+			freshlog "Loading stable FreeSurfer module"
 			module load freesurfer/6.0
 	elif [ "$1" == "dev" ]; then
-		# dev FreeSurfer
+		freshlog "Loading development FreeSurfer module"
 		module load freesurfer/6-dev-20180918
 		export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$cores
+	elif [ "$1" == "afni" ]; then
+		freshlog "Loading AFNI module"
+		module load afni/17.1.03
 	fi
+
+	freshlog "Loaded module(s) are:"
+	module list
+
 }
 
-function do_recon_all {
+function mri_convert {
+	freshlog "-c flag passed"
+	freshlog "Running mri_convert on $file and outputting as $convertedoutputfile"
+	env_setup stable
+	sane mri_convert -cs 0.9 "$file" "$convertedoutputfile"
+}
 
-	## mechanism to over write the subject id by passing a different one
-	## as the first argument to this function, if needed.
-	## Defaults to global otherwise.
-	if [ -z "$1" ]; then
-		local subject="$1"
-	else
-		local subject="$subject"
+function afni_processing {
+
+## AFNI sanity checks
+
+	if [ ! -f "$afni_input" ]; then
+		freshlog "AFNI processing specified with -a flag"
+		freshlog "No AFNI input file specified with -a"
+		freshlog "Exiting"
+		exit 111
 	fi
 
-	## AFNI steps for F
+	if [ ! -f "$afni_output" ]; then
+		freshlog "AFNI processing specified with -z flag"
+		freshlog "No AFNI output file specified with -z"
+		freshlog "Exiting"
+		exit 112
+	fi
 
+	env_setup afni
+
+	## FIXME - way to pass specific AFNI flags
+	sane 3dresample -orient ras -dxyz 1.2 1.1 1.1 -prefix "$afni_output" -input "$afni_input"
+
+	# *3dresample* -*orient* ras *-dxyz* 1.2 1.1 1.1 *-prefix* <output_name> *-input* <input_name>
+	# (those in bold are part of the command, those in normal are the
+	# parameters people can change according to their data)
+
+}
+
+function do_recon_all_prefix {
+	## this is a short step
+	freshlog "# -------------------------------------------------- #"
+	freshlog "Starting reconan-all -i PREPEND ONLY steps"
+	freshlog "This will only run recon-all -i on a single File for,"
+	freshlog "a single Subject ID at a single Time Point. It will"
+	freshlog "then quit and not run any other piplelines. This is"
+	freshlog "intended to be run with the slurm task farming"
+	freshlog "utility or similar."
+
+	## sanity check to make sure there is only 1 wave supplied
+	if [ ${#waves[@]} -gt 1 ]; then
+		freshlog "ERROR"
+		freshlog "More than one wave / time series specified"
+		freshlog "I.e. multiple -w flags provided."
+		freshlog "This function is only intended to run on a single wave"
+		freshlog "and can't handle multiple -w flags"
+		freshlot "Exiting without going furhter."
+		exit 59
+	fi
 
 	env_setup stable
 
-	## the steps that need to be carried out
-	## Needed by Erik currently
-	## FIXME
-	#mri_convert -cs 0.9 $directory/$subject_w1_T1_FP.nii.gz $directory/$subject_w1_T1_FP_RS.nii.gz
+	sane recon-all -i "$file" -s "$subject""_""$wave"
 
-	## FIXME
-	## NB NB NB
-	## BIDS may make the naming conventions easier
-	## this happens on 3 different files for the same subject but different time points
-	## need to figure out a way of automating for the naming convention
-	## resampling naming convnetion also applies here
-	recon-all -i $file1 -s $subject_$wavenumber
-	recon-all -i $file2 -s $subject_$wavenumber
-	recon-all -i $file3 -s $subject_$wavenumber
-		## `--> -s flag outputs to the named subject directory
-	#recon-all  -all -3T -cm -openmp 8 -T2 $directory/$subject_w1_T2_FP.nii.gz -T2pial -s $directory/$subject_w1 -hippocampal-subfields-T1T2 $directory/$subject_w1_T2_FP.nii.gz T1andT2_based -parallel -openmp 8
+	freshlog "Finished reconan-all -i PREPEND ONLY steps"
+	freshlog "Work complete. Exiting fresh."
+	freshlog "# -------------------------------------- #"
+	freshlog ""
 
-	## F's settings
-	## FIXME - placment of this var
-	## each of the following steps takes about 12 hours
-	## to run on each waves data for the subject
-	## FIXME - the -s flag's input
+	exciting
 
-	for wave in 1 2 3
+	}
+
+function do_recon_all {
+
+	freshlog "# --------------------------- #"
+	freshlog "Starting reconan-all -all steps"
+
+	env_setup stable
+
+	for wave in "${waves[@]}"
 	do
-		recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
+		sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
+		sane segmentHA_T1.sh "$subject""_""$wave"
 	done
 
 	env_setup dev
 
-	## FIXME - $timepoint var needs defining & is different for each
-	segmentHA_T1.sh "$subject_$timepoint"
-	segmentHA_T1.sh "$subject_$timepoint"
-	segmentHA_T1.sh "$subject_$timepoint"
+	for wave in "${waves[@]}"
+	do
+		sane segmentHA_T1.sh "$subject""_""$wave"
+		sane segmentBS.sh "$subject""_""$wave"
+		sane segmentThalamicNuclei.sh "$subject""_""$wave"
+	done
 
 	## Not needed for F
 	#segmentHA_T2.sh $subject $directory/$subject_w1_T2_FP.nii.gz T1andT2_based 1
 
-	## FIXME - $timepoint var needs defining & is different for each
-	segmentBS.sh "$subject_$timepoint"
-	segmentBS.sh "$subject_$timepoint"
-	segmentBS.sh "$subject_$timepoint"
-
-	## FIXME - $timepoint var needs defining & is different for each
-	segmentThalamicNuclei.sh "$subject_$timepoint"
-	segmentThalamicNuclei.sh "$subject_$timepoint"
-	segmentThalamicNuclei.sh "$subject_$timepoint"
+	freshlog "reconan-all steps completed"
+	freshlog "# ----------------------- #"
 
 }
 
 function do_longitudianal {
 
+	freshlog "# ------------------------ #"
+	freshlog "Starting Longitudianal Pipeline"
+
 	env_setup stable
 
-	## FIXME - check this variable
-	## NB NB NB
-	local subjectid=""$subject"base"
+	## recon-all -base has the following format
+	## recon-all -base "$subject""base" -tp $subject_$timepoint1 -tp $subject_timepoint2 -tp $subject_timepoint3 -all
+	## thus we need to build an array of the waves and pass them to it
+	for wave in "${waves[@]}"
+	do
+		local timepointrefs=("${timepointrefs[@]}" "-tp" "$subject""_""$wave")
+	done
 
-	## FIXME
-	## NB NB
-	## variable naming is broken here
-	## convention is subjectid subjectidFU2 subjectidFU3
-	recon-all -base "$subject"base  -tp $subject_$timepoint1 -tp $subject_timepoint2 -tp $subject_timepoint3 -all
+	sane recon-all -base "$subject""base" "${timepointrefs[@]}" -all
 
-	## FIXME - prob going to be hitting the wall clock limit soon
+	lastwave=$(echo "${waves[*]}" | sort -nr | awk '{print $NF}')
+	freshlog "Determining the last time series to be $lastwave"
+		## `--> thought this step only ran on last time point but it runs on all
+		##			keeping the variable incase it comes in useful elsewhere
 
-	## FIXME - does "$subject"base work??
-	# run step 2 for the longitudinal pipeline
-	## FIXME - E - does this need all 3 or just the last one? Also, is -parallel applicable?
-	#recon-all -long "$subject"_$timepoint1 "$subject"base -all
-	#recon-all -long "$subject"_$timepoint2 "$subject"base -all
-	recon-all -long "$subject"_$timepoint3 "$subject"base -all
+	for wave in "${waves[@]}"
+	do
+		sane recon-all -long "$subject""_""$wave" "$subject""base" -all
+		sane segmentBS.sh "$subject""_""$wave".long."$subject"base
+	done
 
 	env_setup dev
 
-	segmentHA_T1_long.sh "$subject"base
+	sane segmentHA_T1_long.sh "$subject"base
 
-	segmentBS.sh $subject_$timeseries1.long."$subject"base
-	segmentBS.sh $subject_$timeseries2.long."$subject"base
-	segmentBS.sh $subject_$timeseries3.long."$subject"base
+	freshlog "Starting segmentBS.sh steps"
 
-	segmentThalamicNuclei.sh $subect_$timeseries1.long."$subject"base
-	segmentThalamicNuclei.sh $subect_$timeseries2.long."$subject"base
-	segmentThalamicNuclei.sh $subect_$timeseries3.long."$subject"base
+	for wave in "${waves[@]}"
+	do
+		sane segmentBS.sh "$subject""_""$wave".long."$subject"base
+	done
 
-	## FIXME
-	## are the subject file names going to be consistent?
-	## i.e. will it always be $subject_w1_T1_FP_RS.nii.gz ??
+	freshlog "Finished segmentBS.sh steps"
+
+	freshlog "Starting segmentThalamicNuclei.sh steps"
+
+	for wave in "${waves[@]}"
+	do
+		sane segmentThalamicNuclei.sh "$subject""_""$wave".long."$subject"base
+	done
+
+	freshlog "Finished longitudianal steps"
+	freshlog "# ------------------------ #"
 
 }
 
 # get the flags
-while getopts "s:d:f:w:nu" OPTION
+while getopts "s:d:f:w:c:a:z:n:rpklu" OPTION
 do
 	case $OPTION in
 		s)
@@ -175,8 +266,30 @@ do
 		w)
 			waves=(${waves[@]} "$OPTARG")
 			;;
+		k)
+			skip_reconall="YES"
+			;;
+		l)
+			skip_longitudianal="YES"
+			;;
+		r)
+			resampled="NO"
+			export resampled
+			;;
+		c)
+			convertedoutputfile=$OPTARG
+			;;
+		a)
+			afni_input=$OPTARG
+			;;
+		z)
+			afni_output=$OPTARG
+			;;
+		p)
+			recon_all_prefix="YES"
+			;;
 		n)
-			export resampled="NO"
+			cores=$OPTARG
 			;;
 		?)
 			usage
@@ -185,13 +298,78 @@ do
 	esac
 done
 
+## Sanity Checks
+if [ ! -f "$file" ]; then
+	freshlog "Can't find the file $file referenced with the -f flag"
+	usage
+	freshlog "Exiting without going furhter"
+	exit 90
+else
+	freshlog "Working on file: $file"
+fi
+
+if [ ! -f "$subject" ]; then
+	freshlog "No Subject ID provided via the -s flag"
+	usage
+	freshlog "Exiting without going furhter"
+	exit 91
+else
+	freshlog "Subject ID = $subject"
+fi
+
+if [ ${#waves[@]} -eq 0 ]; then
+	freshlog "No wave / time series reference provided via the -w flags"
+	freshlog "Or no -w flags specified at all"
+	usage
+	freshlog "Exiting without going furhter"
+	exit 92
+else
+	freshlog "Wave(s) = "
+	echo "${waves[@]}"
+fi
+
 if [ -z "$directory" ]; then
 	directory=$(pwd)
 fi
 export SUBJECTS_DIR=$directory
-echo "SUBJECTS_DIR = $directory"
-echo "Subject ID = $subject"
+freshlog "Setting directory to be $directory"
+freshlog "Setting SUBJECTS_DIR = $directory"
 
-do_recon_all_3_tp
+## if not specified assuming the number of cores
+## is being dictated by a slurm allocation
+if [ -z "$cores" ]; then
+	cores="$SLURM_TASKS_PER_NODE"
+fi
+freshlog "Number of Cores to work with = $cores"
+
+## Worflow starts here
+
+if [ "$recon_all_prefix" == "YES" ]; then
+	do_recon_all_prefix
+	# this will exit after this
+fi
+
+if [ -n "$convertedoutputfile" ]; then # string not null, hence doing mri_convert
+	mri_convert
+fi
+
+if [ "$skip_reconall" == "YES" ]; then
+	freshlog "Skipping recon-all -all steps"
+else
+	do_recon_all
+fi
+
+if [ "$skip_longitudianal" == "YES" ]; then
+	freshlog "Skipping longitudianal steps"
+else
+	do_longitudianal
+fi
+
+if [ "$skip_longitudianal" == "$skip_reconall" ]; then
+	freshlog "Both the recon-all -all and longitudinal pipelines are being skipped."
+	freshlog "Hope you meant to do that!"
+fi
+
+exciting
 
 exit 0
