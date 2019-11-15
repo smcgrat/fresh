@@ -260,7 +260,6 @@ do
 			;;
 		f)
 			file=$OPTARG
-			export $file
 			;;
 		w)
 			waves=(${waves[@]} "$OPTARG")
@@ -273,7 +272,6 @@ do
 			;;
 		r)
 			resampled="NO"
-			export resampled
 			;;
 		c)
 			convertedoutputfile=$OPTARG
@@ -307,7 +305,7 @@ else
 	freshlog "Working on file: $file"
 fi
 
-if [ ! -f "$subject" ]; then
+if [ -z "$subject" ]; then
 	freshlog "No Subject ID provided via the -s flag"
 	usage
 	freshlog "Exiting without going furhter"
