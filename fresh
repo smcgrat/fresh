@@ -154,7 +154,12 @@ function do_recon_all_prefix {
 
 	env_setup stable
 
-	sane recon-all -i "$file" -s "$subject""_""$wave"
+	## only 1 wave in these circumstances but using a for loop
+	## because it is referenced from the waves array everywhere else
+	for wave in "${waves[@]}"
+	do
+		sane recon-all -i "$file" -s "$subject""_""$wave"
+	done
 
 	freshlog "Finished reconan-all -i PREPEND ONLY steps"
 	freshlog "Work complete. Exiting fresh."
