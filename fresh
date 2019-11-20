@@ -180,7 +180,7 @@ function do_recon_all {
 	for wave in "${waves[@]}"
 	do
 		sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
-		sane segmentHA_T1.sh "$subject""_""$wave"
+		## sane segmentHA_T1.sh "$subject""_""$wave" ## this is prob superfelous here and taken care of below ##
 	done
 
 	env_setup dev
