@@ -19,8 +19,9 @@ function intro {
 intro
 
 function exciting {
-	freshlog "# -------------- #"
-	freshlog "Pipelines Complete"
+	freshlog "# ------------------ #"
+	freshlog "# Pipelines Complete #"
+	freshlog "# ------------------ #"
 	freshlog ""
 	freshlog "               _ _   _             "
 	freshlog "              (_) | (_)            "
@@ -134,12 +135,9 @@ function afni_processing {
 function do_recon_all_prefix {
 	## this is a short step
 	freshlog "# -------------------------------------------------- #"
-	freshlog "Starting reconan-all -i PREPEND ONLY steps"
+	freshlog "Starting reconan-all -i prepend steps"
 	freshlog "This will only run recon-all -i on a single File for,"
-	freshlog "a single Subject ID at a single Time Point. It will"
-	freshlog "then quit and not run any other piplelines. This is"
-	freshlog "intended to be run with the slurm task farming"
-	freshlog "utility or similar."
+	freshlog "a single Subject ID at a single Time Point."
 
 	## sanity check to make sure there is only 1 wave supplied
 	if [ ${#waves[@]} -gt 1 ]; then
@@ -152,21 +150,36 @@ function do_recon_all_prefix {
 		exit 59
 	fi
 
-	env_setup stable
+	## sanity check
+	if [ ! -d "$subject""_""$wave" ]; then
+		freshlog "The output directory from the recon-all -i does not appear to exist"
+		freshlog "recon-all i output directory is: "$subject""_""$wave""
+		freshlog "This is naive as it assumes the mere existance of the directory"
+		freshlog "proves all is well."
+		freshlog "Doing the pre-processing step"
 
-	## only 1 wave in these circumstances but using a for loop
-	## because it is referenced from the waves array everywhere else
-	for wave in "${waves[@]}"
-	do
-		sane recon-all -i "$file" -s "$subject""_""$wave"
-	done
+		env_setup stable
 
-	freshlog "Finished reconan-all -i PREPEND ONLY steps"
-	freshlog "Work complete. Exiting fresh."
-	freshlog "# -------------------------------------- #"
-	freshlog ""
+		## FIXME - will this break with multiple waves?
+		## only 1 wave in these circumstances but using a for loop
+		## because it is referenced from the waves array everywhere else
+		for wave in "${waves[@]}"
+		do
+			sane recon-all -i "$file" -s "$subject""_""$wave"
+		done
 
-	exciting
+		freshlog "Finished reconan-all -i PREPEND ONLY steps for"
+		freshlog ""$subject""_""$wave""
+		freshlog "Work complete."
+		freshlog "# -------------------------------------- #"
+		freshlog ""
+
+	else
+		freshlog "The output directory from the recon-all -i does appears to exist"
+		freshlog ""$subject""_""$wave""
+		freshlog "Moving on without doing pre-processing step"
+
+	fi
 
 	}
 
@@ -349,6 +362,7 @@ freshlog "Number of Cores to work with = $cores"
 if [ "$recon_all_prefix" == "YES" ]; then
 	do_recon_all_prefix
 	# this will exit after this
+	exciting
 fi
 
 if [ -n "$convertedoutputfile" ]; then # string not null, hence doing mri_convert
@@ -358,6 +372,8 @@ fi
 if [ "$skip_reconall" == "YES" ]; then
 	freshlog "Skipping recon-all -all steps"
 else
+	## the prefix function is conditional on the relevant directory not existing
+	do_recon_all_prefix
 	do_recon_all
 fi
 
