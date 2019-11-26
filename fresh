@@ -238,7 +238,12 @@ function do_longitudianal {
 	for wave in "${waves[@]}"
 	do
 		sane recon-all -long "$subject""_""$wave" "$subject""base" -all
-		sane segmentBS.sh "$subject""_""$wave".long."$subject"base
+		## FIXME - think this should happen further down, not here
+		## it is also erroring as follows
+		## egmentBS.sh 000019031295_w1.long.000019031295base
+		## Software requires 4 arguments
+		## segmentSFnewT1.sh matlabRuntimeDirectory FShomeDirectory subjectName
+		#sane segmentBS.sh "$subject""_""$wave".long."$subject"base
 	done
 
 	env_setup dev
