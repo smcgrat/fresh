@@ -7,57 +7,73 @@ function freshlog {
 
 ## ANSI art :-)
 function intro {
-	freshlog " __                _"
-	freshlog "/ _|              | |"
-	freshlog "| |_ _ __ ___  ___| |___"
-	freshlog "|  _| '__/ _ \/ __| '_  \ "
-	freshlog "| | | | |  __/\__ \ | | |"
-	freshlog "|_| |_|  \___||___/_| |_|"
-	freshlog ""
+	echo " __                _"
+	echo "/ _|              | |"
+	echo "| |_ _ __ ___  ___| |___"
+	echo "|  _| '__/ _ \/ __| '_  \ "
+	echo "| | | | |  __/\__ \ | | |"
+	echo "|_| |_|  \___||___/_| |_|"
+	echo ""
 }
 
 intro
 
 function exciting {
-	freshlog "# ------------------ #"
-	freshlog "# Pipelines Complete #"
-	freshlog "# ------------------ #"
-	freshlog ""
-	freshlog "               _ _   _             "
-	freshlog "              (_) | (_)            "
-	freshlog "  _____  _____ _| |_ _ _ __   ____ "
-	freshlog " / _ \ \/ / __| | __| | '_ \ / _  |"
-	freshlog "|  __/>  < (__| | |_| | | | | (_| |"
-	freshlog " \___/_/\_\___|_|\__|_|_| |_|\__, |"
-	freshlog "                              __/ |"
-	freshlog "                             |___/ "
-	freshlog ""
+#	freshlog "# ------------------ #"
+#	freshlog "# Pipelines Complete #"
+#	freshlog "# ------------------ #"
+	echo ""
+	echo "               _ _   _             "
+	echo "              (_) | (_)            "
+	echo "  _____  _____ _| |_ _ _ __   ____ "
+	echo " / _ \ \/ / __| | __| | '_ \ / _  |"
+	echo "|  __/>  < (__| | |_| | | | | (_| |"
+	echo " \___/_/\_\___|_|\__|_|_| |_|\__, |"
+	echo "                              __/ |"
+	echo "                             |___/ "
+	echo ""
 	exit 0
 }
 
 function usage {
-	freshlog "Bash scripting to automate FreeSurfer usage"
-	freshlog "Use at your own risk, no warranty is provided"
-	freshlog "Flags explained"
-	freshlog "	-s <Subject ID>"
-	freshlog "	-d <Directory where subject data is located>"
-	freshlog "			[if not specified assumes current directory]"
-	freshlog "	-f <NII file to work on>"
-	freshlog "	-w <wave/time_series>"
-	freshlog "			(multiple instances of this flag possible)"
-	freshlog "	-k [If this flag is used the recon-all -all pipelines are skipped]"
-	freshlog "	-l [If this flag is used the longitudinal pipelines are skipped]"
-	freshlog "	-r [If this flag is used the data has NOT been resampled]"
-	freshlog "	-n <number of processor cores to work with for parallel pipelines>"
-	freshlog "			[if not set defaults to slurm setting]"
-	freshlog "	-a <afni input file>"
-	freshlog "	-z <afni output file>"
-	freshlog "	-p [If this flag is passed ONLY the reconan-all -i steps will be done]"
-	freshlog "			[No other pipelines will be carried out]"
-	freshlog "			[And this only works on one file and time series / wave at a time]"
-	freshlog "	-c <specify output file for mri_convert to convert -f reference to>"
-	freshlog "	-u [Print this help message]"
-	freshlog "	-h [Print this help message]"
+
+echo " _   _ ___  __ _  __ _  ___  "
+echo "| | | / __|/ _\` |/ _\` |/ _ \ "
+echo "| |_| \__ \ (_| | (_| |  __/ "
+echo " \__,_|___/\__,_|\__, |\___| "
+echo "                  __/ |      "
+echo "                 |___/ "
+
+	cat << EOF
+
+Bash scripting to automate FreeSurfer usage
+Use at your own risk, no warranty is provided
+Flags explained
+	-s <Subject ID>
+	-d <Directory where subject data is located>
+			[if not specified assumes current directory]
+	-f <NII file to work on>
+			(multiple instances of this flag possible)
+	-w <wave/time_series>
+			(multiple instances of this flag possible)
+	-k [If this flag is used the recon-all -all pipelines are skipped]
+	-l [If this flag is used the longitudinal pipelines are skipped]
+	-r [If this flag is used the data has NOT been resampled]
+	-n <number of processor cores to work with for parallel pipelines>
+			[if not set defaults to slurm setting]
+	-a <afni input file>
+	-z <afni output file>
+	-p [If this flag is passed ONLY the reconan-all -i steps will be done]
+			[No other pipelines will be carried out]
+			[And this only works on one file and time series / wave at a time]
+	-c <specify output file for mri_convert to convert -f reference to>
+	-u [Print this help message]
+	-h [Print this help message]
+
+EOF
+
+exciting
+
 }
 
 function sane {
@@ -100,7 +116,16 @@ function mri_convert {
 	freshlog "-c flag passed"
 	freshlog "Running mri_convert on $file and outputting as $convertedoutputfile"
 	env_setup stable
-	sane mri_convert -cs 0.9 "$file" "$convertedoutputfile"
+	## FIXME - ability to run mri_convert on multiple files
+	## Currently can only work on 1
+	if [ ${#files[@]} -eq 1 ]; then
+		## single file available to process here
+		## this is OK for now
+		for file in "${files[@]}"
+		do
+			sane mri_convert -cs 0.9 "$file" "$convertedoutputfile"
+		done
+	fi
 }
 
 function afni_processing {
@@ -149,11 +174,24 @@ function do_recon_all_prefix {
 
 		env_setup stable
 
-		for wave in "${waves[@]}"
+		#for wave in "${waves[@]}"
+		#for file in "${files[@]}"
+		#do
+			## REFERENCE - leaving here for now incase we need to return to this
+			#sane recon-all -i "$file" -s "$subject""_""$wave"
+		#done
+
+		index="0"
+		while [ "$index" -lt "$file_count" ]
 		do
-			## FIXME - this needs multiple file inputs
-			## corresponds to: file$n timeseries$n subjectID
-			sane recon-all -i "$file" -s "$subject""_""$wave"
+			## Iterate through one array, (files), to get its corresponding item in a second array (waves)
+			thisfile=$(echo "${files[$index]}")
+			thiswave=$(echo "${waves[$index]}")
+			freshlog "Iterating through index point: $index of the files array to get the file to work on:"
+			freshlog "Which is: $thisfile"
+			freshlog "To get its corresponding $index item in the waves array to get the wave to work on: $thiswave"
+			sane recon-all -i "$thisfile" -s "$subject""_""$thiswave"
+			((index++))
 		done
 
 		freshlog "Finished reconan-all -i PREPEND ONLY steps for"
@@ -208,8 +246,8 @@ function do_longitudianal {
 	## sanity check to ensure multiple time points here
 	if [ ${#waves[@]} -gt 1 ]; then
 		freshlog "Detected there are ${#waves[@]} time points, which is  more than 1 time series or wave"
-		freshlog "I.e. this is longitudianal data - Moving on to process it longitudianally"	
-		
+		freshlog "I.e. this is longitudianal data - Moving on to process it longitudianally"
+
 		env_setup stable
 
 		## recon-all -base has the following format
@@ -274,7 +312,8 @@ do
 			directory=$OPTARG
 			;;
 		f)
-			file=$OPTARG
+			files=(${files[@]} "$OPTARG")
+			#file=$OPTARG
 			;;
 		w)
 			waves=(${waves[@]} "$OPTARG")
@@ -311,14 +350,17 @@ do
 done
 
 ## Sanity Checks
-if [ ! -f "$file" ]; then
-	freshlog "Can't find the file $file referenced with the -f flag"
-	usage
-	freshlog "Exiting without going furhter"
-	exit 90
-else
-	freshlog "Working on file: $file"
-fi
+for file in "${files[@]}"
+do
+	if [ ! -f "$file" ]; then
+		freshlog "Can't find the file $file referenced with the -f flag"
+		usage
+		freshlog "Exiting without going furhter"
+		exit 90
+	else
+		freshlog "Will be working on file: $file"
+	fi
+done
 
 if [ -z "$subject" ]; then
 	freshlog "No Subject ID provided via the -s flag"
@@ -340,6 +382,16 @@ else
 	echo "${waves[@]}"
 fi
 
+## make sure the number of files corresponds to the same number of waves
+file_count=${#files[@]}
+wave_count=${#waves[@]}
+if [ "$file_count" != "$wave_count" ]; then
+	freshlog "File count ("$file_count") is NOT equal to the Wave Count ("$wave_count")"
+	freshlog "The number of files needs to correspond to the number of waves or time series"
+	freshlog "Exiting without running any pipelines."
+	exit 88
+fi
+
 if [ -z "$directory" ]; then
 	directory=$(pwd)
 fi
@@ -355,6 +407,8 @@ fi
 freshlog "Number of Cores to work with = $cores"
 
 ## Worflow starts here
+
+freshlog "# Pipelines Starting #"
 
 if [ "$recon_all_prefix" == "YES" ]; then
 	do_recon_all_prefix
