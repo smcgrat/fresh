@@ -139,6 +139,8 @@ function do_recon_all_prefix {
 	freshlog "This will only run recon-all -i on a single File for,"
 	freshlog "a single Subject ID at a single Time Point."
 
+	## FIXME - is this correct, only 1 wave at a time?
+	## NO, this is not the case
 	## sanity check to make sure there is only 1 wave supplied
 	if [ ${#waves[@]} -gt 1 ]; then
 		freshlog "ERROR"
@@ -147,7 +149,7 @@ function do_recon_all_prefix {
 		freshlog "This function is only intended to run on a single wave"
 		freshlog "and can't handle multiple -w flags"
 		freshlot "Exiting without going furhter."
-		exit 59
+#		exit 59
 	fi
 
 	## sanity check
@@ -160,11 +162,10 @@ function do_recon_all_prefix {
 
 		env_setup stable
 
-		## FIXME - will this break with multiple waves?
-		## only 1 wave in these circumstances but using a for loop
-		## because it is referenced from the waves array everywhere else
 		for wave in "${waves[@]}"
 		do
+			## FIXME - this needs multiple file inputs
+			## corresponds to: file$n timeseries$n subjectID
 			sane recon-all -i "$file" -s "$subject""_""$wave"
 		done
 
@@ -178,7 +179,6 @@ function do_recon_all_prefix {
 		freshlog "The output directory from the recon-all -i does appears to exist"
 		freshlog ""$subject""_""$wave""
 		freshlog "Moving on without doing pre-processing step"
-
 	fi
 
 	}
@@ -218,6 +218,8 @@ function do_longitudianal {
 	freshlog "# ------------------------ #"
 	freshlog "Starting Longitudianal Pipeline"
 
+	## FIXME - sanity check to ensure multiple time points here
+
 	env_setup stable
 
 	## recon-all -base has the following format
@@ -238,16 +240,11 @@ function do_longitudianal {
 	for wave in "${waves[@]}"
 	do
 		sane recon-all -long "$subject""_""$wave" "$subject""base" -all
-		## FIXME - think this should happen further down, not here
-		## it is also erroring as follows
-		## egmentBS.sh 000019031295_w1.long.000019031295base
-		## Software requires 4 arguments
-		## segmentSFnewT1.sh matlabRuntimeDirectory FShomeDirectory subjectName
-		#sane segmentBS.sh "$subject""_""$wave".long."$subject"base
 	done
 
 	env_setup dev
 
+	freshlog "Starting segmentHA_T1_long.sh step"
 	sane segmentHA_T1_long.sh "$subject"base
 
 	freshlog "Starting segmentBS.sh steps"
