@@ -53,7 +53,8 @@ When doing the `recon-all -i ...` step `fresh` is working on multiple files, eac
 fresh -f file1 -w w1 -f file2 -w w2 -f file3 -w w3 ...
 ```
 Which maps as follows:
-^ file ^ time series point ^
+| file | time series point |
+| --- | --- |
 | file1 | w1 |
 | file2 | w2 |
 | file3 | w3 |
