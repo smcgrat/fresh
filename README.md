@@ -71,7 +71,7 @@ $ git clone https://github.com/smcgrat/fresh.git
 
 This is a working repo and is subject to change. There will be a catalog of commit's for known working versions of fresh.
 
-1. Dec 03, 2019 - first working known good version: `$ git checkout e2cde83ae30a3872423eb75f2139874ad1248ded`
+1. Dec 03, 2019 - first working known good version: `$ git checkout b6b0b9545cbb10e3334388a80d04666742da4e60`
 
 ## Associating a file with its corresponding time series or wave reference
 
