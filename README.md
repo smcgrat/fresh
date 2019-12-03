@@ -53,6 +53,8 @@ Flags explained
 #SBATCH -U Project Code ## update this
 #SBATCH -t 4-00:00:00
 
+module load apps fresh
+
 fresh -s 00000000001 -f 00000000001_w1.nii -w w1 -f 00000000001_w2.nii -w w2 -f 00000000001_w3.nii -w w3
 ```
 
