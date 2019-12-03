@@ -93,7 +93,7 @@ function env_setup {
 
 	. /etc/profile.d/modules.sh
 	module purge
-	module load tcin
+	module load tcin apps fresh
 
 	if [ "$1" = "stable" ]; then
 			freshlog "Loading stable FreeSurfer module"
