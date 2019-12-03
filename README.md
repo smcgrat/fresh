@@ -42,9 +42,36 @@ Flags explained
 
 ## Example Usage
 
+
+### slurm submission example
+
 ```
-fresh -s 000019031295 -w w1 -f 000019031295_w1.nii
+#!/bin/sh
+#SBATCH -N 1
+#SBATCH -p compute
+#SBATCH -J "fresh"
+#SBATCH -U Project Code ## update this
+#SBATCH -t 4-00:00:00
+
+fresh -s 00000000001 -f 00000000001_w1.nii -w w1 -f 00000000001_w2.nii -w w2 -f 00000000001_w3.nii -w w3
 ```
+
+This runs the `recona-all` steps for the 00000000001 subject ID on 3 input files, 00000000001_w2.nii, 00000000001_w2.nii and 00000000001_w3.nii, for 3 corresponding time series, w1, w2 and w3.
+
+## Installation
+
+1. Download fresh
+```
+$ git clone https://github.com/smcgrat/fresh.git
+```
+
+2. Add `fresh` to your path. E.g. add `alias fresh="/path/to/fresh"` to your `.bashrc` file.
+
+### Installation of a specific version of fresh
+
+This is a working repo and is subject to change. There will be a catalog of commit's for known working versions of fresh.
+
+1. Nov 27, 2019 - first working known good version: `$ git checkout 08d45e86f4fff61d6ccb664315af396399ab9a86`
 
 ## Associating a file with its corresponding time series or wave reference
 
