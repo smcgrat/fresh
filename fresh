@@ -434,11 +434,6 @@ else
 	do_longitudianal
 fi
 
-if [ "$skip_longitudianal" == "$skip_reconall" ]; then
-	freshlog "Both the recon-all -all and longitudinal pipelines are being skipped."
-	freshlog "Hope you meant to do that!"
-fi
-
 exciting
 
 exit 0
