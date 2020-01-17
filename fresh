@@ -59,11 +59,12 @@ Flags explained
 	-k [If this flag is used the recon-all -all pipelines are skipped]
 	-l [If this flag is used the longitudinal pipelines are skipped]
 	-r [If this flag is used the data has NOT been resampled]
+	-t [If this flag is used there are T2 images]
 	-n <number of processor cores to work with for parallel pipelines>
 			[if not set defaults to slurm setting]
 	-a <afni input file>
 	-z <afni output file>
-	-p [If this flag is passed ONLY the reconan-all -i steps will be done]
+	-p [If this flag is passed ONLY the recon-all -i steps will be done]
 			[No other pipelines will be carried out]
 			[And this only works on one file and time series / wave at a time]
 	-c <specify output file for mri_convert to convert -f reference to>
@@ -115,16 +116,20 @@ function env_setup {
 function mri_convert {
 	freshlog "-c flag passed"
 	freshlog "Running mri_convert on $file and outputting as $convertedoutputfile"
-	env_setup stable
-	## FIXME - ability to run mri_convert on multiple files
-	## Currently can only work on 1
-	if [ ${#files[@]} -eq 1 ]; then
-		## single file available to process here
-		## this is OK for now
-		for file in "${files[@]}"
-		do
-			sane mri_convert -cs 0.9 "$file" "$convertedoutputfile"
-		done
+	if [ "$t2_images_present" != "YES" ]; then
+		env_setup stable
+		## FIXME NB - ability to run mri_convert on multiple files
+		## Currently can only work on 1
+		#if [ ${#files[@]} -eq 1 ]; then
+			## single file available to process here
+			## this is OK for now
+			for file in "${files[@]}"
+			do
+				#sane mri_convert -cs 0.9 "$file" "$convertedoutputfile"
+				# _RS appended at end of resampled files so just this might work
+				sane mri_convert -cs 0.9 "$file" "$file""_RS"
+			done
+		#fi
 	fi
 }
 
@@ -160,7 +165,7 @@ function afni_processing {
 function do_recon_all_prefix {
 	## this is a short step
 	freshlog "# -------------------------------------------------- #"
-	freshlog "Starting reconan-all -i prepend steps"
+	freshlog "Starting recon-all -i prepend steps"
 	freshlog "This will only run recon-all -i on a single File for,"
 	freshlog "a single Subject ID at a single Time Point."
 
@@ -187,14 +192,16 @@ function do_recon_all_prefix {
 			## Iterate through one array, (files), to get its corresponding item in a second array (waves)
 			thisfile=$(echo "${files[$index]}")
 			thiswave=$(echo "${waves[$index]}")
+			thisresampledfile=""$thisfile""_RS""
+				# `--> mri_convert step has renamed these files, this resampling step needs to happen to all current data
 			freshlog "Iterating through index point: $index of the files array to get the file to work on:"
 			freshlog "Which is: $thisfile"
 			freshlog "To get its corresponding $index item in the waves array to get the wave to work on: $thiswave"
-			sane recon-all -i "$thisfile" -s "$subject""_""$thiswave"
+			sane recon-all -i "$thisresampledfile" -s "$subject""_""$thiswave"
 			((index++))
 		done
 
-		freshlog "Finished reconan-all -i PREPEND ONLY steps for"
+		freshlog "Finished recon-all -i PREPEND ONLY steps for"
 		freshlog ""$subject""_""$wave""
 		freshlog "Work complete."
 		freshlog "# -------------------------------------- #"
@@ -211,14 +218,19 @@ function do_recon_all_prefix {
 function do_recon_all {
 
 	freshlog "# --------------------------- #"
-	freshlog "Starting reconan-all -all steps"
+	freshlog "Starting recon-all -all steps"
 
 	env_setup stable
 
 	for wave in "${waves[@]}"
 	do
-		sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
-		## sane segmentHA_T1.sh "$subject""_""$wave" ## this is prob superfelous here and taken care of below ##
+		if [ "$t2_images_present" == "YES" ]; then
+				# T2 there are T2 images, so proceess accordingly
+				sane recon-all -all -3T -parallel -openmp "$cores" -T2 "$subject""_""$wave""_T2_GR_FP.nii.gz" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 T1andT2_based
+		else
+				# T1 - there are NO T2 images, so proceess accordingly
+			sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
+		fi
 	done
 
 	env_setup dev
@@ -230,10 +242,16 @@ function do_recon_all {
 		sane segmentThalamicNuclei.sh "$subject""_""$wave"
 	done
 
-	## Not needed for F
+	## T2 step - Not needed for F
 	#segmentHA_T2.sh $subject $directory/$subject_w1_T2_FP.nii.gz T1andT2_based 1
+if [ "$t2_images_present" == "YES" ]; then
+	for wave in "${waves[@]}"
+	do
+		segmentHA_T2.sh $subject $directory/"$subject""_""$wave""_T2_GR_FP.nii.gz" T1andT2_based 1
+	done
+fi
 
-	freshlog "reconan-all steps completed"
+	freshlog "recon-all steps completed"
 	freshlog "# ----------------------- #"
 
 }
@@ -326,6 +344,9 @@ do
 			;;
 		r)
 			resampled="NO"
+			;;
+		t)
+			t2_images_present="YES"
 			;;
 		c)
 			convertedoutputfile=$OPTARG

@@ -28,6 +28,7 @@ Flags explained
 	-k [If this flag is used the recon-all -all pipelines are skipped]
 	-l [If this flag is used the longitudinal pipelines are skipped]
 	-r [If this flag is used the data has NOT been resampled]
+  -t [If this flag is used there are T2 images]
 	-n <number of processor cores to work with for parallel pipelines>
 			[if not set defaults to slurm setting]
 	-a <afni input file>
@@ -120,10 +121,10 @@ $ fresh -n ...
 ```
                 _ _   _             
                (_) | (_)            
-   _____  _____ _| |_ _ _ __   __ _ 
+   _____  _____ _| |_ _ _ __   __ _
   / _ \ \/ / __| | __| | '_ \ / _` |
  |  __/>  < (__| | |_| | | | | (_| |
   \___/_/\_\___|_|\__|_|_| |_|\__, |
                                __/ |
-                              |___/ 
+                              |___/
 ```
