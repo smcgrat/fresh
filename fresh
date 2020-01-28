@@ -1,4 +1,4 @@
-#!/bin/bash
+/bin/bash
 #
 
 function freshlog {
@@ -114,7 +114,15 @@ function preprocess {
 		if [ "$t2images" != "YES" ]; then
 			freshlog "send "$1" to be pre-processed"
 			env_setup stable
-			sane mri_convert -cs 0.9 "$1" "$1""_RS"
+			local inputfile="$1"
+			freshlog "input file = $inputfile"
+			local outputfile="$(echo $inputfile | sed -e 's/\(.nii\)*$//g')""_RS.nii.gz"
+			freshlog "output file = $outputfile"
+			sane mri_convert -cs 0.9 "$inputfile" "$outputfile"
+			freshlog "contents of files array BEFORE: ${files[@]}"
+			freshlog "replacing $inputfile in the files array with $outputfile"
+			files="${files/$inputfile/$outputfile}"
+			freshlog "contents of files array AFTER: ${files[@]}"
 		else
 			freshlog "T2 images detected - these do not need to be proprocessed"
 		fi
@@ -164,14 +172,6 @@ function do_recon_all_preprocessing {
 	freshlog "This will only run recon-all -i on a single File for,"
 	freshlog "a single Subject ID at a single Time Point at a time."
 
-	## sanity check
-	if [ ! -d "$subject""_""$wave" ]; then
-		freshlog "The output directory from the recon-all -i does not appear to exist"
-		freshlog "recon-all i output directory is: "$subject""_""$wave""
-		freshlog "This is naive as it assumes the mere existance of the directory"
-		freshlog "proves all is well."
-		freshlog "Doing the pre-processing step"
-
 		env_setup stable
 
 		index="0"
@@ -180,15 +180,18 @@ function do_recon_all_preprocessing {
 			## Iterate through one array, (files), to get its corresponding item in a second array (waves)
 			thisfile=$(echo "${files[$index]}")
 			thiswave=$(echo "${waves[$index]}")
-			thisresampledfile=""$thisfile""_RS""
-				# `--> mri_convert step has renamed these files earlier, presumably
-				#      this resampling step needs to happen to all current data
-			freshlog "Iterating through index point: $index of the files array to get the file to work on:"
-			#freshlog "Which is: $thisfile"
-			freshlog "Which is: $thisresampledfile"
-			freshlog "To get its corresponding $index item in the waves array to get the wave to work on: $thiswave"
-			sane recon-all -i "$thisresampledfile" -s "$subject""_""$thiswave"
-			((index++))
+			freshlog "Iterating through index point: $index of the files array to get the file to work on: $thisfile & the wave to work on: $thiswave"
+			## sanity check
+			if [ ! -d "$subject""_""$thiswave" ]; then
+				freshlog "The output directory from the recon-all -i  ("$subject""_""$wave") does not appear to exist"
+				freshlog "This is naive as it assumes the mere existance of the directory proves all is well."
+				freshlog "To get its corresponding $index item in the waves array to get the wave to work on: $thiswave"
+				sane recon-all -i "$thisfile" -s "$subject""_""$thiswave"
+				((index++))
+			else
+				freshlog "The output directory from the recon-all -i does appears to exist: ""$subject""_""$wave"". Moving on without doing pre-processing step"
+				((index++))
+			fi
 		done
 
 		freshlog "Finished recon-all -i PREPEND ONLY steps for"
@@ -196,12 +199,6 @@ function do_recon_all_preprocessing {
 		freshlog "Work complete."
 		freshlog "# -------------------------------------- #"
 		freshlog ""
-
-	else
-		freshlog "The output directory from the recon-all -i does appears to exist"
-		freshlog ""$subject""_""$wave""
-		freshlog "Moving on without doing pre-processing step"
-	fi
 
 	}
 
@@ -478,6 +475,9 @@ else
 	if [ "$recononly" == "YES" ]; then 
 		freshlog "-r flag passed - stop now as should only do reconall -all steps, not the longitidinal"
 		exciting
+	else
+		freshlog "Do the reconall -all steps too"
+		do_recon_all
 	fi
 fi
 
