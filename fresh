@@ -105,21 +105,38 @@ function env_setup {
 
 ## Pre-Processing Functions ##
 
-function mri_convert {
-	freshlog "Running mri_convert pre-processing"
-	## this step is only needed if there are T1 images only. I think?
-	if [ "$t2images" != "YES" ]; then
-		env_setup stable
-		for file in "${files[@]}"
-		do
-			local convertedoutputfile="$file""_RS"
-				# _RS appended at end of resampled files is the convention here
-			freshlog "Running mri_convert on $file and outputting as $convertedoutputfile"
-			sane mri_convert -cs 0.9 "$file" "$convertedoutputfile"
-		done
-		#fi
-	fi
+function preprocess {
+	#if [ -n "${afni_inputs[@]}" ]; then
+	if [ -n "${afni_inputs}" ]; then
+		freshlog "AFNI inputs detected"
+		afni_pre_processing
+	else
+		if [ "$t2images" != "YES" ]; then
+			freshlog "send "$1" to be pre-processed"
+			env_setup stable
+			sane mri_convert -cs 0.9 "$1" "$1""_RS"
+		else
+			freshlog "T2 images detected - these do not need to be proprocessed"
+		fi
+	fi	
 }
+
+#function mri_convert {
+#	freshlog "Running mri_convert pre-processing on $1"
+#	## this step is only needed if there are T1 images only. I think?
+#	#if [ "$t2images" != "YES" ]; then
+#		env_setup stable
+#		#for file in "${files[@]}"
+#		#do
+#			#thisfile="$1"
+#			#convertedoutputfile="$thisfile""_RS"
+#				# _RS appended at end of resampled files is the convention here
+#			#freshlog "Running mri_convert on $file and outputting as $convertedoutputfile"
+#			sane mri_convert -cs 0.9 "$1" "$1""_RS"
+#		#done
+#		#fi
+#	#fi
+#}
 
 function afni_pre_processing {
 
@@ -344,17 +361,17 @@ do
 done
 
 ## Sanity Checks
-for file in "${files[@]}"
-do
-	if [ ! -f "$file" ]; then
-		freshlog "Can't find the file $file referenced with the -f flag"
-		usage
-		freshlog "Exiting without going furhter"
-		exit 90
-	else
-		freshlog "Will be working on file: $file"
-	fi
-done
+#for file in "${files[@]}"
+#do
+#	if [ ! -f "$file" ]; then
+#		freshlog "Can't find the file $file referenced with the -f flag"
+#		usage
+#		freshlog "Exiting without going furhter"
+#		exit 90
+#	else
+#		freshlog "Will be working on file: $file"
+#	fi
+#done
 
 if [ -z "$subject" ]; then
 	freshlog "No Subject ID provided via the -s flag"
@@ -413,22 +430,36 @@ if [ -z "$cores" ]; then
 fi
 freshlog "Number of Cores to work with = $cores"
 
+for file in "${files[@]}"
+do
+	if [ ! -f "$file" ]; then
+		freshlog "Can't find the file $file referenced with the -f flag"
+		usage
+		freshlog "Exiting without going furhter"
+		exit 90
+	else
+		freshlog "Will be working on file: $file"
+		freshlog "Preprocessing $file"
+		preprocess "$file"
+	fi
+done
+
 ## =================== ##
 ## Worflow starts here ##
 ## =================== ##
 
 freshlog "# Pipelines Starting #"
 
-freshlog "Preprocessing steps"
-freshlog "==================="
-freshlog "These are short so are done everytime fresh runs"
+#freshlog "Preprocessing steps"
+#freshlog "==================="
+#freshlog "These are short so are done everytime fresh runs"
 
-freshlog "(1) mri_convert or afni pre-processing"
-if [ -n "$afni_inputs" ]; then # string is not null, ergo afni input files to be pre-processed
-	afni_pre_processing
-else 	# the default is to use mri_convert
-	mri_convert
-fi
+#freshlog "(1) mri_convert or afni pre-processing"
+#if [ -n "$afni_inputs" ]; then # string is not null, ergo afni input files to be pre-processed
+#	afni_pre_processing
+#else 	# the default is to use mri_convert
+#	mri_convert
+#fi
 
 freshlog "Preprocessing steps finished"
 freshlog "============================"
