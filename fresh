@@ -472,12 +472,10 @@ if [ "$longonly" == "YES" ]; then # longonly var set, ergo do this step
 else
 	freshlog "(2) reconall pre-processing"
 	do_recon_all_preprocessing
+	do_recon_all
 	if [ "$recononly" == "YES" ]; then 
 		freshlog "-r flag passed - stop now as should only do reconall -all steps, not the longitidinal"
 		exciting
-	else
-		freshlog "Do the reconall -all steps too"
-		do_recon_all
 	fi
 fi
 
