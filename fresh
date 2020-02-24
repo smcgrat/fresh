@@ -215,7 +215,13 @@ function do_recon_all {
 	do
 		if [ "$t2images" == "YES" ]; then
 				# T2 there are T2 images, so proceess accordingly
-			sane recon-all -all -3T -parallel -openmp "$cores" -T2 "$subject""_""$wave""_T2_GR_FP.nii.gz" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 T1andT2_based
+		## 2020-02-24 - update - START - get the T2 image run to work, hopefully
+			#sane recon-all -all -3T -parallel -openmp "$cores" -T2 "$subject""_""$wave""_T2_GR_FP.nii.gz" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 T1andT2_based
+
+			t2imageloc="$subject""_""$wave""_T2_GR_FP.nii.gz"
+
+			sane recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based
+		## 2020-02-24 - update - END - get the T2 image run to work, hopefully
 		else
 				# T1 - there are NO T2 images, so proceess accordingly
 			sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
