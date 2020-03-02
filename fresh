@@ -453,16 +453,16 @@ done
 
 freshlog "# Pipelines Starting #"
 
-#freshlog "Preprocessing steps"
-#freshlog "==================="
-#freshlog "These are short so are done everytime fresh runs"
+freshlog "Preprocessing steps"
+freshlog "==================="
+freshlog "These are short so are done everytime fresh runs"
 
-#freshlog "(1) mri_convert or afni pre-processing"
-#if [ -n "$afni_inputs" ]; then # string is not null, ergo afni input files to be pre-processed
-#	afni_pre_processing
-#else 	# the default is to use mri_convert
-#	mri_convert
-#fi
+freshlog "(1) mri_convert or afni pre-processing"
+if [ -n "$afni_inputs" ]; then # string is not null, ergo afni input files to be pre-processed
+	afni_pre_processing
+else 	# the default is to use mri_convert
+	mri_convert
+fi
 
 freshlog "Preprocessing steps finished"
 freshlog "============================"
