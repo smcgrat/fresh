@@ -112,21 +112,21 @@ function preprocess {
 		afni_pre_processing
 	else
 		## FIXME - confirm if pre-processing is unnecessary for T2 images. seems it may be
-		#if [ "$t2images" != "YES" ]; then
+		if [ "$t2images" != "YES" ]; then
 			freshlog "send "$1" to be pre-processed"
 			env_setup stable
 			local inputfile="$1"
 			freshlog "input file = $inputfile"
-			local outputfile="$(echo $inputfile | sed -e 's/\(.nii\)*$//g')""_RS.nii.gz"
+			local outputfile="$(echo $inputfile | sed -e 's/\(.nii.gz\)*$//g')""_RS.nii.gz"
 			freshlog "output file = $outputfile"
 			sane mri_convert -cs 0.9 "$inputfile" "$outputfile"
 			freshlog "contents of files array BEFORE: ${files[@]}"
 			freshlog "replacing $inputfile in the files array with $outputfile"
 			files="${files/$inputfile/$outputfile}"
 			freshlog "contents of files array AFTER: ${files[@]}"
-		#else
-		#	freshlog "T2 images detected - these do not need to be proprocessed"
-		#fi
+		else
+			freshlog "T2 images detected - these do not need to be proprocessed"
+		fi
 	fi	
 }
 
