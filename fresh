@@ -1,5 +1,4 @@
-/bin/bash
-#
+#/bin/bash
 
 function freshlog {
 	echo "fresh log | $(date '+%Y-%m-%d %H:%M:%S') | $* "
