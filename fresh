@@ -323,7 +323,7 @@ function do_longitudianal {
 }
 
 # get the flags
-while getopts "s:d:f:w:c:a:n:rltu" OPTION
+while getopts "s:d:f:w:c:a:n:rlu" OPTION
 do
 	case $OPTION in
 		s)
