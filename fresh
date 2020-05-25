@@ -444,16 +444,6 @@ do
 		usage
 		freshlog "Exiting without going furhter"
 		exit 90
-	else
-		freshlog "Will be working on file: $file"
-		freshlog "(Naive) Check to see if it is a T2 file format, they don't need this step"
-		naiveT2check=$(echo "$file" | grep "T2")
-		if [ -z "$naiveT2check" ]; then # file name does not contain T2 string
-			freshlog "Preprocessing $file"
-			preprocess "$file"
-		else
-			freshlog "$file determined to be a T2 file which does not need to be pre-processed"
-		fi
 	fi
 done
 
@@ -467,12 +457,18 @@ freshlog "Preprocessing steps"
 freshlog "==================="
 freshlog "These are short so are done everytime fresh runs"
 
-freshlog "(1) mri_convert or afni pre-processing"
-if [ -n "$afni_inputs" ]; then # string is not null, ergo afni input files to be pre-processed
-	afni_pre_processing
-else 	# the default is to use mri_convert
-	mri_convert
-fi
+for file in "${files[@]}"
+do
+	freshlog "Will be working on file: $file"
+	freshlog "(Naive) Check to see if it is a T2 file format, they don't need this step"
+	naiveT2check=$(echo "$file" | grep "T2")
+	if [ -z "$naiveT2check" ]; then # file name does not contain T2 string
+		freshlog "Preprocessing $file"
+		preprocess "$file"
+	else
+		freshlog "$file determined to be a T2 file which does not need to be pre-processed"
+	fi
+done
 
 freshlog "Preprocessing steps finished"
 freshlog "============================"
