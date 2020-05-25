@@ -109,23 +109,17 @@ function preprocess {
 		freshlog "AFNI inputs detected"
 		afni_pre_processing
 	else
-		## confirmed, 2020-05-19, pre-processing is unnecessary for T2 images
-                t2imagelocregex="$subject"*"_T2_GR_FP.nii.gz"
-                if [ -e "$t2imagelocregex" ]; then # T2 file to be processed	
-			freshlog "T2 images detected - these do not need to be proprocessed"
-		else
-			freshlog "send "$1" to be pre-processed"
-			env_setup stable
-			local inputfile="$1"
-			freshlog "input file = $inputfile"
-			local outputfile="$(echo $inputfile | sed -e 's/\(.nii.gz\)*$//g')""_RS.nii.gz"
-			freshlog "output file = $outputfile"
-			sane mri_convert -cs 0.9 "$inputfile" "$outputfile"
-			freshlog "contents of files array BEFORE: ${files[@]}"
-			freshlog "replacing $inputfile in the files array with $outputfile"
-			files="${files/$inputfile/$outputfile}"
-			freshlog "contents of files array AFTER: ${files[@]}"
-		fi
+		freshlog "send "$1" to be pre-processed"
+		env_setup stable
+		local inputfile="$1"
+		freshlog "input file = $inputfile"
+		local outputfile="$(echo $inputfile | sed -e 's/\(.nii.gz\)*$//g')""_RS.nii.gz"
+		freshlog "output file = $outputfile"
+		sane mri_convert -cs 0.9 "$inputfile" "$outputfile"
+		freshlog "contents of files array BEFORE: ${files[@]}"
+		freshlog "replacing $inputfile in the files array with $outputfile"
+		files="${files/$inputfile/$outputfile}"
+		freshlog "contents of files array AFTER: ${files[@]}"
 	fi	
 }
 
@@ -452,8 +446,14 @@ do
 		exit 90
 	else
 		freshlog "Will be working on file: $file"
-		freshlog "Preprocessing $file"
-		preprocess "$file"
+		freshlog "(Naive) Check to see if it is a T2 file format, they don't need this step"
+		naiveT2check=$(echo "$file" | grep "T2")
+		if [ -z "$naiveT2check" ]; then # file name does not contain T2 string
+			freshlog "Preprocessing $file"
+			preprocess "$file"
+		else
+			freshlog "$file determined to be a T2 file which does not need to be pre-processed"
+		fi
 	fi
 done
 
