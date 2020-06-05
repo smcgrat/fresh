@@ -176,15 +176,20 @@ function do_recon_all_preprocessing {
 			thiswave=$(echo "${waves[$index]}")
 			freshlog "Iterating through index point: $index of the files array to get the file to work on: $thisfile & the wave to work on: $thiswave"
 			## sanity check
-			if [ ! -d "$subject""_""$thiswave" ]; then
-				freshlog "The output directory from the recon-all -i  ("$subject""_""$wave") does not appear to exist"
-				freshlog "This is naive as it assumes the mere existance of the directory proves all is well."
-				freshlog "To get its corresponding $index item in the waves array to get the wave to work on: $thiswave"
-				sane recon-all -i "$thisfile" -s "$subject""_""$thiswave"
-				((index++))
+			t2check=$(echo "$thisfile" | grep T2)
+			if [ -z "$t2check" ]; then # think this step is only needed for T1 files, not T2, (20200605)
+				if [ ! -d "$subject""_""$thiswave" ]; then
+					freshlog "The output directory from the recon-all -i  ("$subject""_""$wave") does not appear to exist"
+					freshlog "This is naive as it assumes the mere existance of the directory proves all is well."
+					freshlog "To get its corresponding $index item in the waves array to get the wave to work on: $thiswave"
+					sane recon-all -i "$thisfile" -s "$subject""_""$thiswave"
+					((index++))
+				else
+					freshlog "The output directory from the recon-all -i does appears to exist: ""$subject""_""$wave"". Moving on without doing pre-processing step"
+					((index++))
+				fi
 			else
-				freshlog "The output directory from the recon-all -i does appears to exist: ""$subject""_""$wave"". Moving on without doing pre-processing step"
-				((index++))
+				freshlog "$thisfile detected as being a T2 file - not running recon-all -i on it"
 			fi
 		done
 
@@ -207,29 +212,19 @@ function do_recon_all {
 
 	for wave in "${waves[@]}"
 	do
-		t2imageloc="$subject""_""$wave""_T2_GR_FP.nii.gz"
-		if [ -e "$t2imageloc" ]; then # T2 file to be processed
-			freshlog "processing T2 file"
-			sane recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based
-		else # T1 files
-			freshlog "processing T2 file"
-			sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
+		if [ ! -d "$subject""_""$wave" ]; then # it appears the directory from the -i step doesn't exist, bail.
+			freshlog ""$subject""_""$wave" directory from the -i step does not appear to exist"
+			freshlog "cannot run the recon-all -all step - not doing so"	
+		else
+			t2imageloc="$subject""_""$wave""_T2_GR_FP.nii.gz"
+			if [ -e "$t2imageloc" ]; then # T2 file to be processed
+				freshlog "processing T2 file"
+				sane recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based
+			else # T1 files
+				freshlog "processing T1 file"
+				sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
+			fi
 		fi
-
-## following can prob be scrubbed
-#		if [ "$t2images" == "YES" ]; then
-#				# T2 there are T2 images, so proceess accordingly
-#		## 2020-02-24 - update - START - get the T2 image run to work, hopefully
-#			#sane recon-all -all -3T -parallel -openmp "$cores" -T2 "$subject""_""$wave""_T2_GR_FP.nii.gz" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 T1andT2_based
-#
-#			t2imageloc="$subject""_""$wave""_T2_GR_FP.nii.gz"
-#
-#			sane recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based
-#		## 2020-02-24 - update - END - get the T2 image run to work, hopefully
-#		else
-#				# T1 - there are NO T2 images, so proceess accordingly
-#			sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
-#		fi
 	done
 
 	env_setup dev
