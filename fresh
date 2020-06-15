@@ -190,6 +190,7 @@ function do_recon_all_preprocessing {
 				fi
 			else
 				freshlog "$thisfile detected as being a T2 file - not running recon-all -i on it"
+				((index++))
 			fi
 		done
 
