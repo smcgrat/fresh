@@ -115,7 +115,11 @@ function preprocess {
 		freshlog "input file = $inputfile"
 		local outputfile="$(echo $inputfile | sed -e 's/\(.nii.gz\)*$//g')""_RS.nii.gz"
 		freshlog "output file = $outputfile"
-		sane mri_convert -cs 0.9 "$inputfile" "$outputfile"
+		if [ ! -e "$outputfile" ]; then
+			sane mri_convert -cs 0.9 "$inputfile" "$outputfile"
+		else
+			freshlog "outputfile: $outputfile already exists, presumably from a previous run, NOT doing the mri_convert step"
+		fi
 		freshlog "contents of files array BEFORE: ${files[@]}"
 		freshlog "replacing $inputfile in the files array with $outputfile"
 		files="${files/$inputfile/$outputfile}"
