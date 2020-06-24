@@ -18,34 +18,24 @@ Bash scripting to automate FreeSurfer usage.
 Bash scripting to automate FreeSurfer usage
 Use at your own risk, no warranty is provided
 Flags explained
-	-s <Subject ID>
-	-d <Directory where subject data is located>
-			[if not specified assumes current directory]
-	-f <NII file to work on>
-			(multiple instances of this flag possible)
-	-w <wave/time_series>
-			(multiple instances of this flag possible)
-	-k [If this flag is used the recon-all -all pipelines are skipped]
-	-l [If this flag is used the longitudinal pipelines are skipped]
-	-r [If this flag is used the data has NOT been resampled]
-  -t [If this flag is used there are T2 images]
-	-n <number of processor cores to work with for parallel pipelines>
-			[if not set defaults to slurm setting]
-	-a <afni input file>
-	-z <afni output file>
-	-p [If this flag is passed ONLY the reconan-all -i steps will be done]
-			[No other pipelines will be carried out]
-			[And this only works on one file and time series / wave at a time]
-	-c <specify output file for mri_convert to convert -f reference to>
-	-u [Print this help message]
-	-h [Print this help message]
+        -s <Subject ID>
+        -d <Directory where subject data is located> (if not specified assumes current directory)
+        -f <NII file to work on> (multiple instances of this flag possible)
+        -w <wave/time_series> (multiple instances of this flag possible)
+        -l [Only the longitudinal pipelines are run, the recon-all -all are skipped]
+        -r [Only the recon-all -all pipelines are run, the longitudinal are skipped]
+        -n <number of processor cores to work with for parallel pipelines> (if not set defaults to slurm setting)
+        -a <afni input file> (multiple instances of this flag possible)
+        -u [Print this help message]
+        -h [Print this help message]
 ```
 
 ## Example Usage
 
 
-### slurm submission example
+### slurm submission example for Trinity College Clusters
 
+#### Run all workflows
 ```
 #!/bin/sh
 #SBATCH -N 1
@@ -59,7 +49,45 @@ module load apps fresh
 fresh -s 00000000001 -f 00000000001_w1.nii -w w1 -f 00000000001_w2.nii -w w2 -f 00000000001_w3.nii -w w3
 ```
 
-This runs the `recona-all` steps for the 00000000001 subject ID on 3 input files, 00000000001_w2.nii, 00000000001_w2.nii and 00000000001_w3.nii, for 3 corresponding time series, w1, w2 and w3.
+This runs all the pre-processing, `recon-all -all` and longitudinal steps for the 00000000001 subject ID on 3 input files, 00000000001_w2.nii, 00000000001_w2.nii and 00000000001_w3.nii, for 3 corresponding time series, w1, w2 and w3.
+
+#### Run reccon-all -all workflows only
+
+Specify the `-r` flag with `fresh`, e.g.
+
+```
+#!/bin/sh
+#SBATCH -N 1
+#SBATCH -p compute
+#SBATCH -J "fresh"
+#SBATCH -U Project Code ## update this
+#SBATCH -t 4-00:00:00
+
+module load apps fresh
+
+fresh -s 00000000001 -r -f 00000000001_w1.nii -w w1 -f 00000000001_w2.nii -w w2 -f 00000000001_w3.nii -w w3
+```
+
+Only the recon-all -all pipelines are run, the longitudinal are skipped
+
+#### Run longitudinal workflows only
+
+Specify the `-l` flag with `fresh`, e.g.
+
+```
+#!/bin/sh
+#SBATCH -N 1
+#SBATCH -p compute
+#SBATCH -J "fresh"
+#SBATCH -U Project Code ## update this
+#SBATCH -t 4-00:00:00
+
+module load apps fresh
+
+fresh -s 00000000001 -l -f 00000000001_w1.nii -w w1 -f 00000000001_w2.nii -w w2 -f 00000000001_w3.nii -w w3
+```
+
+Only the longitudinal pipelines are run, the recon-all -all are skipped.
 
 ## Installation
 
@@ -68,7 +96,7 @@ This runs the `recona-all` steps for the 00000000001 subject ID on 3 input files
 $ git clone https://github.com/smcgrat/fresh.git
 ```
 
-2. Add `fresh` to your path. E.g. add `alias fresh="/path/to/fresh"` to your `.bashrc` file.
+2. Add the `fresh` script to your path. E.g. add `alias fresh="/path/to/fresh"` to your `.bashrc` file.
 
 ### Installation of a specific version of fresh
 
