@@ -115,15 +115,29 @@ function preprocess {
 		freshlog "input file = $inputfile"
 		local outputfile="$(echo $inputfile | sed -e 's/\(.nii.gz\)*$//g')""_RS.nii.gz"
 		freshlog "output file = $outputfile"
-		if [ ! -e "$outputfile" ]; then
-			sane mri_convert -cs 0.9 "$inputfile" "$outputfile"
+		freshlog "(Naive) Check to see if "$inputfile" is a T2 file format, they don't need this step"
+		naiveT2check=$(echo "$inputfile" | grep "T2")
+		if [ -z "$naiveT2check" ]; then # file name does not contain T2 string
+			freshlog "Preprocessing $inputfile"
+			freshlog "Checking to see if $output file already exists first"
+			if [ ! -e "$outputfile" ]; then # ensure the output file doesn't already exist
+				freshlog "$output file doesn't appear to exist, running mri_convert on $inputfile"
+				sane mri_convert -cs 0.9 "$inputfile" "$outputfile"
+				freshlog "$inputfile mri converted to $outputfile"
+			else
+				freshlog "$outputfile appears to already exist, not running mri_convert step on it"
+			fi
+			freshlog "adding $outputfile to array of pre-processed files for future processing"
+			freshlog "contents of pre-processed files array BEFORE: ${pre_processed_files[@]}"
+			pre_processed_files=("${pre_processed_files[@]}" "$outputfile")
+			freshlog "contents of pre-processed files array AFTER: ${pre_processed_files[@]}"
 		else
-			freshlog "outputfile: $outputfile already exists, presumably from a previous run, NOT doing the mri_convert step"
+			freshlog ""$inputfile" appears to be a T2 file, they do not need the mri_convert step run on them"
+			freshlog "adding $inputfile to array of pre-processed files for future processing"
+			freshlog "contents of pre-processed files array BEFORE: ${pre_processed_files[@]}"
+			pre_processed_files=("${pre_processed_files[@]}" "$inputfile")
+			freshlog "contents of pre-processed files array AFTER: ${pre_processed_files[@]}"
 		fi
-		freshlog "contents of files array BEFORE: ${files[@]}"
-		freshlog "replacing $inputfile in the files array with $outputfile"
-		files="${files/$inputfile/$outputfile}"
-		freshlog "contents of files array AFTER: ${files[@]}"
 	fi	
 }
 
@@ -175,13 +189,15 @@ function do_recon_all_preprocessing {
 		index="0"
 		while [ "$index" -lt "$file_count" ]
 		do
-			## Iterate through one array, (files), to get its corresponding item in a second array (waves)
-			thisfile=$(echo "${files[$index]}")
+			## Iterate through one array, (pre_processed_files), to get its corresponding item in a second array (waves)
+			## Note: used to iterate through the files array but the substitiution needed to replace file names wasn't working
+			#thisfile=$(echo "${files[$index]}")
+			thisfile=$(echo "${pre_processed_files[$index]}")
 			thiswave=$(echo "${waves[$index]}")
-			freshlog "Iterating through index point: $index of the files array to get the file to work on: $thisfile & the wave to work on: $thiswave"
+			freshlog "Iterating through index point: $index of the mri converted files array to get the file to work on: $thisfile & the wave to work on: $thiswave"
 			## sanity check
 			t2check=$(echo "$thisfile" | grep T2)
-			if [ -z "$t2check" ]; then # think this step is only needed for T1 files, not T2, (20200605)
+			if [ -z "$t2check" ]; then # this step is only needed for T1 files, not T2, (20200605)
 				if [ ! -d "$subject""_""$thiswave" ]; then
 					freshlog "The output directory from the recon-all -i  ("$subject""_""$wave") does not appear to exist"
 					freshlog "This is naive as it assumes the mere existance of the directory proves all is well."
@@ -215,20 +231,21 @@ function do_recon_all {
 
 	env_setup stable
 
-	for wave in "${waves[@]}"
-	do
-		if [ ! -d "$subject""_""$wave" ]; then # it appears the directory from the -i step doesn't exist, bail.
-			freshlog ""$subject""_""$wave" directory from the -i step does not appear to exist"
-			freshlog "cannot run the recon-all -all step - not doing so"	
+	for wave in "${waves[@]}"; do
+		# T1 files
+		if [ -d "$subject""_""$wave" ]; then 
+			freshlog ""$subject""_""$wave" directory exists - running T1 pipeline"
+			freshlog "The T1 files had to be p-re-processed for this directory to exist"
+			sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
 		else
-			t2imageloc="$subject""_""$wave""_T2_GR_FP.nii.gz"
-			if [ -e "$t2imageloc" ]; then # T2 file to be processed
-				freshlog "processing T2 file"
-				sane recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based
-			else # T1 files
-				freshlog "processing T1 file"
-				sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
-			fi
+			freshlog ""$subject""_""$wave" directory from the -i step does not appear to exist"
+			freshlog "cannot run the corresponding recon-all -all T1 step - not doing so"	
+		fi
+		# T2 files
+		t2imageloc="$subject""_""$wave""_T2_GR_FP.nii.gz"
+		if [ -e "$t2imageloc" ]; then # T2 file exists, process accordingly
+			freshlog "T2 file, $t2imageloc, detected, process accordinlgy"
+			sane recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based
 		fi
 	done
 
