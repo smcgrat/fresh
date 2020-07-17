@@ -18,9 +18,6 @@ function intro {
 intro
 
 function exciting {
-#	freshlog "# ------------------ #"
-#	freshlog "# Pipelines Complete #"
-#	freshlog "# ------------------ #"
 	echo ""
 	echo "               _ _   _             "
 	echo "              (_) | (_)            "
@@ -48,15 +45,12 @@ echo "                 |___/ "
 Bash scripting to automate FreeSurfer usage
 Use at your own risk, no warranty is provided
 Flags explained
-	-s <Subject ID>
 	-d <Directory where subject data is located> (if not specified assumes current directory)
 	-f <NII file to work on> (multiple instances of this flag possible)
-	-w <wave/time_series> (multiple instances of this flag possible)
 	-l [Only the longitudinal pipelines are run, the recon-all -all are skipped]
 	-r [Only the recon-all -all pipelines are run, the longitudinal are skipped]
 	-n <number of processor cores to work with for parallel pipelines> (if not set defaults to slurm setting)
 	-a <afni input file> (multiple instances of this flag possible)
-	-u [Print this help message]
 	-h [Print this help message]
 
 EOF
@@ -66,10 +60,10 @@ exciting
 }
 
 function sane {
-	freshlog "Doing - $*"
 	if [ "$dryrunflag" == "YES" ]; then # dry run or not
-		freshlog "Dry run called - not executing"
+		freshlog "Dry run called - Not Doing - $@"
 	else
+		freshlog "Doing - $*"
 		"$@"
 	fi
 	local status=$?
@@ -134,7 +128,7 @@ function pp2 { # stage 2 pre-processing, recon-all -all
 	freshlog "Stage 2 pre-processing of $myfile"
 	# T1
 	if [ "$myfiletype" == "T1" ]; then
-		local myt2comparator=""
+		local myt2comparator="$mysubject"_"$mywave"_T2_GR_FP.nii.gz"" #s5519_w1_T2_GR_FP.nii.gz
 		if [ ! -e "$myt2comparator" ]; then # if there are T2 files for this sample the T1 pre-processing is redundant
 			sane recon-all -all -3T -parallel -openmp "$cores" -s "$mysubject""_""$mywave" -hippocampal-subfields-T1
 		else
@@ -142,70 +136,21 @@ function pp2 { # stage 2 pre-processing, recon-all -all
 		fi
 	fi
 	# T2
+	##FIXME - something going wrong here
 	if [ "$myfiletype" == "T2" ]; then
 		if [ -d "$subject""_""$wave" ]; then # "$subject""_""$wave" exists, ergo -T1 -all, (a requirement), should have run
 			t2imageloc="$mysubject""_""$mywave""_T2_GR_FP.nii.gz"
 			sane recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$mysubject""_""$mywave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based
 		else
+			freshlog "Not Doing - (doesn't "$subject""_""$wave" exist) - recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$mysubject""_""$mywave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based"
 			freshlog "The required "$subject""_""$wave" directory for the T2 step doesn't exist"
+			freshlog "adding $myfile to backlog array for later processing"
+			backlog=("${backlog[@]}" "$myfile")
+			freshlog "content of the backlog array"
+			echo "${backlog[@]}"
 		fi
 	fi
 }
-
-#function preprocess {
-#	#if [ -n "${afni_inputs[@]}" ]; then
-#	if [ -n "${afni_inputs}" ]; then
-#		freshlog "AFNI inputs detected"
-#		afni_pre_processing
-#	else
-#		freshlog "send "$1" to be pre-processed"
-#		env_setup stable
-#		local inputfile="$1"
-#		freshlog "input file = $inputfile"
-#		local outputfile="$(echo $inputfile | sed -e 's/\(.nii.gz\)*$//g')""_RS.nii.gz"
-#		freshlog "output file = $outputfile"
-#		freshlog "(Naive) Check to see if "$inputfile" is a T2 file format, they don't need this step"
-#		naiveT2check=$(echo "$inputfile" | grep "T2")
-#		if [ -z "$naiveT2check" ]; then # file name does not contain T2 string
-#			freshlog "Preprocessing $inputfile"
-#			freshlog "Checking to see if $output file already exists first"
-#			if [ ! -e "$outputfile" ]; then # ensure the output file doesn't already exist
-#				freshlog "$output file doesn't appear to exist, running mri_convert on $inputfile"
-#				sane mri_convert -cs 0.9 "$inputfile" "$outputfile"
-#				freshlog "$inputfile mri converted to $outputfile"
-#			else
-#				freshlog "$outputfile appears to already exist, not running mri_convert step on it"
-#			fi
-#			freshlog "adding $outputfile to array of pre-processed files for future processing"
-#			freshlog "contents of pre-processed files array BEFORE: ${pre_processed_files[@]}"
-#			pre_processed_files=("${pre_processed_files[@]}" "$outputfile")
-#			freshlog "contents of pre-processed files array AFTER: ${pre_processed_files[@]}"
-#		else
-#			freshlog ""$inputfile" appears to be a T2 file, they do not need the mri_convert step run on them"
-#			freshlog "adding $inputfile to array of pre-processed files for future processing"
-#			freshlog "contents of pre-processed files array BEFORE: ${pre_processed_files[@]}"
-#			pre_processed_files=("${pre_processed_files[@]}" "$inputfile")
-#			freshlog "contents of pre-processed files array AFTER: ${pre_processed_files[@]}"
-#		fi
-#	fi	
-#}
-
-#function mri_convert {
-#	freshlog "Running mri_convert pre-processing on $1"
-#	## this step is only needed if there are T1 images only. I think?
-#	#if [ "$t2images" != "YES" ]; then
-#		env_setup stable
-#		#for file in "${files[@]}"
-#		#do
-#			#thisfile="$1"
-#			#convertedoutputfile="$thisfile""_RS"
-#				# _RS appended at end of resampled files is the convention here
-#			#freshlog "Running mri_convert on $file and outputting as $convertedoutputfile"
-#			sane mri_convert -cs 0.9 "$1" "$1""_RS"
-#		#done
-#		#fi
-#	#fi
-#}
 
 function afni_pre_processing {
 
@@ -225,79 +170,6 @@ function afni_pre_processing {
 	# parameters people can change according to their data)
 
 }
-
-#function do_recon_all_preprocessing {
-#	## this is a short step
-#	freshlog "# -------------------------------------------------- #"
-#	freshlog "Starting recon-all -i pre-processing steps"
-#	freshlog "This will only run recon-all -i on a single File for,"
-#	freshlog "a single Subject ID at a single Time Point at a time."
-#
-#		env_setup stable
-#
-#		index="0"
-#		while [ "$index" -lt "$file_count" ]
-#		do
-#			## Iterate through one array, (pre_processed_files), to get its corresponding item in a second array (waves)
-#			## Note: used to iterate through the files array but the substitiution needed to replace file names wasn't working
-#			#thisfile=$(echo "${files[$index]}")
-#			thisfile=$(echo "${pre_processed_files[$index]}")
-#			thiswave=$(echo "${waves[$index]}")
-#			freshlog "Iterating through index point: $index of the mri converted files array to get the file to work on: $thisfile & the wave to work on: $thiswave"
-#			## sanity check
-#			t2check=$(echo "$thisfile" | grep T2)
-#			if [ -z "$t2check" ]; then # this step is only needed for T1 files, not T2, (20200605)
-#				if [ ! -d "$subject""_""$thiswave" ]; then
-#					freshlog "The output directory from the recon-all -i  ("$subject""_""$wave") does not appear to exist"
-#					freshlog "This is naive as it assumes the mere existance of the directory proves all is well."
-#					freshlog "To get its corresponding $index item in the waves array to get the wave to work on: $thiswave"
-#					sane recon-all -i "$thisfile" -s "$subject""_""$thiswave"
-#					((index++))
-#				else
-#					freshlog "The output directory from the recon-all -i does appears to exist: ""$subject""_""$wave"". Moving on without doing pre-processing step"
-#					((index++))
-#				fi
-#			else
-#				freshlog "$thisfile detected as being a T2 file - not running recon-all -i on it"
-#				((index++))
-#			fi
-#		done
-#
-#		freshlog "Finished recon-all -i PREPEND ONLY steps for"
-#		freshlog ""$subject""_""$wave""
-#		freshlog "Work complete."
-#		freshlog "# -------------------------------------- #"
-#		freshlog ""
-#
-#	}
-
-## reconall -all processing
-
-#function do_recon_all {
-#
-#	freshlog "# --------------------------- #"
-#	freshlog "Starting recon-all -all steps"
-#
-#	env_setup stable
-#
-#	for wave in "${waves[@]}"; do
-#		# T1 files
-#		if [ -d "$subject""_""$wave" ]; then 
-#			freshlog ""$subject""_""$wave" directory exists - running T1 pipeline"
-#			freshlog "The T1 files had to be p-re-processed for this directory to exist"
-#			sane recon-all -all -3T -parallel -openmp "$cores" -s "$subject""_""$wave" -hippocampal-subfields-T1
-#		else
-#			freshlog ""$subject""_""$wave" directory from the -i step does not appear to exist"
-#			freshlog "cannot run the corresponding recon-all -all T1 step - not doing so"	
-#		fi
-#		# T2 files
-#		t2imageloc="$subject""_""$wave""_T2_GR_FP.nii.gz"
-#		if [ -e "$t2imageloc" ]; then # T2 file exists, process accordingly
-#			freshlog "T2 file, $t2imageloc, detected, process accordinlgy"
-#			sane recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$subject""_""$wave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based
-#		fi
-#	done
-#}
 
 function pp3 { # segment*.sh steps
 	env_setup dev
@@ -326,8 +198,8 @@ function do_longitudianal {
 	freshlog "Starting Longitudianal Pipeline"
 
 	## sanity check to ensure multiple time points here
-	if [ ${#waves[@]} -gt 1 ]; then
-		freshlog "Detected there are ${#waves[@]} time points, which is  more than 1 time series or wave"
+	if [ ${#uniqwaves[@]} -gt 1 ]; then
+		freshlog "Detected there are ${#uniqwaves[@]} time points, which is  more than 1 time series or wave"
 		freshlog "I.e. this is longitudianal data - Moving on to process it longitudianally"
 
 		env_setup stable
@@ -335,19 +207,19 @@ function do_longitudianal {
 		## recon-all -base has the following format
 		## recon-all -base "$subject""base" -tp $subject_$timepoint1 -tp $subject_timepoint2 -tp $subject_timepoint3 -all
 		## thus we need to build an array of the waves and pass them to it
-		for wave in "${waves[@]}"
+		for wave in "${uniqwaves[@]}"
 		do
 			local timepointrefs=("${timepointrefs[@]}" "-tp" "$subject""_""$wave")
 		done
 
 		sane recon-all -base "$subject""base" "${timepointrefs[@]}" -all
 
-		lastwave=$(echo "${waves[*]}" | sort -nr | awk '{print $NF}')
+		lastwave=$(echo "${uniqwaves[*]}" | sort -nr | awk '{print $NF}')
 		freshlog "Determining the last time series to be $lastwave"
 			## `--> thought this step only ran on last time point but it runs on all
 			##			keeping the variable incase it comes in useful elsewhere
 
-		for wave in "${waves[@]}"
+		for wave in "${uniqwaves[@]}"
 		do
 			sane recon-all -long "$subject""_""$wave" "$subject""base" -all
 		done
@@ -359,7 +231,7 @@ function do_longitudianal {
 
 		freshlog "Starting segmentBS.sh steps"
 
-		for wave in "${waves[@]}"
+		for wave in "${uniqwaves[@]}"
 		do
 			sane segmentBS.sh "$subject""_""$wave".long."$subject"base
 		done
@@ -368,7 +240,7 @@ function do_longitudianal {
 
 		freshlog "Starting segmentThalamicNuclei.sh steps"
 
-		for wave in "${waves[@]}"
+		for wave in "${uniqwaves[@]}"
 		do
 			sane segmentThalamicNuclei.sh "$subject""_""$wave".long."$subject"base
 		done
@@ -384,7 +256,7 @@ function do_longitudianal {
 }
 
 # get the flags
-while getopts "s:d:f:w:c:a:n:rlux" OPTION
+while getopts "s:d:f:a:n:rlx" OPTION
 do
 	case $OPTION in
 		s)
@@ -396,9 +268,6 @@ do
 		f)
 			files=(${files[@]} "$OPTARG")
 			;;
-		w)
-			waves=(${waves[@]} "$OPTARG")
-			;;
 		r)
 			recononly="YES"
 			;;
@@ -408,24 +277,9 @@ do
 		x)
 			dryrunflag="YES"
 			;;
-#		t)
-#			t2images="YES"
-#			;;
-#		e)
-#			resampled="NO"
-#			;;
-#		c)
-#			convertedoutputfile=$OPTARG
-#			;;
 		a)
 			afni_inputs=(${afni_inputs[@]} "$OPTARG")
 			;;
-#		z)
-#			afni_outputs=(${afni_outputs[@]} "$OPTARG")
-#			;;
-#		p)
-#			recon_all_prefix="YES"
-#			;;
 		n)
 			cores=$OPTARG
 			;;
@@ -437,47 +291,16 @@ do
 done
 
 ## Sanity Checks
-#for file in "${files[@]}"
-#do
-#	if [ ! -f "$file" ]; then
-#		freshlog "Can't find the file $file referenced with the -f flag"
-#		usage
-#		freshlog "Exiting without going furhter"
-#		exit 90
-#	else
-#		freshlog "Will be working on file: $file"
-#	fi
-#done
-
-#if [ -z "$subject" ]; then
-#	freshlog "No Subject ID provided via the -s flag"
-#	usage
-#	freshlog "Exiting without going furhter"
-#	exit 91
-#else
-#	freshlog "Subject ID = $subject"
-#fi
-
-#if [ ${#waves[@]} -eq 0 ]; then
-#	freshlog "No wave / time series reference provided via the -w flags"
-#	freshlog "Or no -w flags specified at all"
-#	usage
-#	freshlog "Exiting without going furhter"
-#	exit 92
-#else
-#	freshlog "Wave(s) = "
-#	echo "${waves[@]}"
-#fi
-
-## make sure the number of files corresponds to the same number of waves
-#file_count=${#files[@]}
-#wave_count=${#waves[@]}
-#if [ "$file_count" != "$wave_count" ]; then
-#	freshlog "File count ("$file_count") is NOT equal to the Wave Count ("$wave_count")"
-#	freshlog "The number of files needs to correspond to the number of waves or time series"
-#	freshlog "Exiting without running any pipelines."
-#	exit 88
-#fi
+for file in "${files[@]}"; do
+	if [ ! -f "$file" ]; then
+		freshlog "Can't find the file $file referenced with the -f flag"
+		usage
+		freshlog "Exiting without going furhter"
+		exit 90
+	else
+		freshlog "Will be working on file: $file"
+	fi
+done
 
 for afni_file in "${afni_inputs[@]}"
 do
@@ -499,8 +322,7 @@ export SUBJECTS_DIR=$directory
 freshlog "Setting directory to be $directory"
 freshlog "Setting SUBJECTS_DIR = $directory"
 
-## if not specified assuming the number of cores
-## is being dictated by a slurm allocation
+## if not specified assuming the number of cores is being dictated by a slurm allocation
 if [ -z "$cores" ]; then
 	cores="$SLURM_TASKS_PER_NODE"
 fi
@@ -525,8 +347,8 @@ freshlog "# Pipelines Starting #"
 freshlog "Preprocessing steps"
 freshlog "==================="
 
-for file in "${files[@]}"
-do
+if [ "$longonly" != "YES" ]; then
+for file in "${files[@]}"; do
 	# this is very brittle
 	subject="${file:0:5}"
 	wave="${file:6:2}"
@@ -534,6 +356,7 @@ do
 	waves=("${waves[@]}" "$wave")
 	filetype="${file:9:2}"
 	freshlog "Paramaters: file = $file subject = $subject wave = $wave filetype = $filetype"
+
 	if [ "$longonly" == "YES" ]; then # longonly var set, ergo don't do this step
 		freshlog "** skipping reconall -all steps **"
 		freshlog "fresh has been run with the -l flag, which means run the Longitudinal processing only"
@@ -548,14 +371,18 @@ do
 			pp2 "$file" "$subject" "$wave" "T2"
 		fi
 	fi
-	if [ "$recononly" == "YES" ]; then 
-		freshlog "-r flag passed - stop now as should only do reconall -all steps, not the longitidinal"
-		exciting
-	fi
+
+	freshlog "In case there were T2 files that where skipped because their"
+	freshlog "corresponding subjectID_wave directory from the recon-all -i"
+	freshlog "step of their T1 files hadn't been created already. Those T2"
+	freshlog "files get added to another array. Iterate through it."
+	for file in "${backlog[@]}"; do
+		pp2 $file
+	done
+
 done
 
-freshlog "stage 3 pre-processing, segment*.sh"
-
+# waves array may have duplicates from the above
 freshlog "removing duplicates from waves array"
 freshlog "contents of waves array BEFORE removal of duplicates:"
 echo ${waves[@]}
@@ -563,6 +390,7 @@ uniqwaves=($(echo "${waves[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 freshlog "contents of waves array AFTER removal of duplicates:"
 echo ${uniqwaves[@]}
 
+freshlog "stage 3 pre-processing, segment*.sh"
 for wave in "${uniqwaves[@]}"; do
 	pp3 "$subject" "$wave"
 	# this defaults the subject id to whatever it was last set at, may be an issue!?
@@ -572,22 +400,12 @@ freshlog "Preprocessing steps finished"
 freshlog "============================"
 freshlog ""
 
-#freshlog "reconall -all processing"
-#freshlog "========================"
-#freshlog ""
-#
-#if [ "$longonly" == "YES" ]; then # longonly var set, ergo don't do this step
-#	freshlog "** skipping reconall -all steps **"
-#	freshlog "fresh has been run with the -l flag, which means run the Longitudinal processing only"
-#else
-#	freshlog "2 reconall pre-processing"
-#	do_recon_all_preprocessing
-#	do_recon_all
-#	if [ "$recononly" == "YES" ]; then 
-#		freshlog "-r flag passed - stop now as should only do reconall -all steps, not the longitidinal"
-#		exciting
-#	fi
-#fi
+if [ "$recononly" == "YES" ]; then 
+	freshlog "-r flag passed - stop now as should only do reconall -all steps, not the longitidinal"
+	exciting
+fi
+
+fi # close "$longonly" != "YES" conditional
 
 freshlog "Longitudinal processing"
 
