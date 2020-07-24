@@ -116,7 +116,7 @@ function pp1 { # stage 1 pre-processing, mri_convert & recon-all -i (T1 files on
 	fi
 	# recon-all -i
 	if [ ! -d "$mysubject""_""$mywave" ]; then # check to make sure the resulting directory doesn't already exist, this step will have been done if it did
-		sane recon-all -i "$myfile" -s "$mysubject""_""$mywave"
+		sane recon-all -i "$rsfilename" -s "$mysubject""_""$mywave"
 	fi
 }
 
