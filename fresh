@@ -45,12 +45,14 @@ echo "                 |___/ "
 Bash scripting to automate FreeSurfer usage
 Use at your own risk, no warranty is provided
 Flags explained
+	-s <Subject>
 	-d <Directory where subject data is located> (if not specified assumes current directory)
 	-f <NII file to work on> (multiple instances of this flag possible)
 	-l [Only the longitudinal pipelines are run, the recon-all -all are skipped]
 	-r [Only the recon-all -all pipelines are run, the longitudinal are skipped]
 	-n <number of processor cores to work with for parallel pipelines> (if not set defaults to slurm setting)
 	-a <afni input file> (multiple instances of this flag possible)
+	-x [Dry Run mode]
 	-h [Print this help message]
 
 EOF
@@ -138,7 +140,7 @@ function pp2 { # stage 2 pre-processing, recon-all -all
 	# T2
 	##FIXME - something going wrong here
 	if [ "$myfiletype" == "T2" ]; then
-		if [ -d "$subject""_""$wave" ]; then # "$subject""_""$wave" exists, ergo -T1 -all, (a requirement), should have run
+		if [ -d "$mysubject""_""$wave" ]; then # "$subject""_""$wave" exists, ergo -T1 -all, (a requirement), should have run
 			t2imageloc="$mysubject""_""$mywave""_T2_GR_FP.nii.gz"
 			sane recon-all -all -3T -cm -parallel -openmp "$cores" -T2 "$t2imageloc" -T2pial -s "$mysubject""_""$mywave" -hippocampal-subfields-T1T2 "$t2imageloc" T1andT2_based
 		else
@@ -181,9 +183,9 @@ function pp3 { # segment*.sh steps
 	sane segmentThalamicNuclei.sh "$mysubject""_""$mywave"
 
 	#for wave in "${waves[@]}"; do
-	t2imageloc="$subject""_""$wave""_T2_GR_FP.nii.gz"
+	t2imageloc="$mysubject""_""$wave""_T2_GR_FP.nii.gz"
 	if [ -e "$t2imageloc" ]; then # T2 images present, they need another step
-		sane segmentHA_T2.sh "$subject""_""$wave" $directory/"$subject""_""$wave""_T2_GR_FP.nii.gz" T1andT2_based 1
+		sane segmentHA_T2.sh "$mysubject""_""$wave" $directory/"$mysubject""_""$wave""_T2_GR_FP.nii.gz" T1andT2_based 1
 	fi
 	#done
 
@@ -196,6 +198,13 @@ function do_longitudianal {
 
 	freshlog "# ------------------------ #"
 	freshlog "Starting Longitudianal Pipeline"
+
+	## sanity check to make sure we have a subject id
+	if [ -z "$subject" ]; then
+		freshlog "No subject ID available, exiting without going further"
+		freshlog "the subject id can be specified with the -s flag if needed"
+		exciting
+	fi
 
 	## sanity check to ensure multiple time points here
 	if [ ${#uniqwaves[@]} -gt 1 ]; then
@@ -347,7 +356,7 @@ freshlog "# Pipelines Starting #"
 freshlog "Preprocessing steps"
 freshlog "==================="
 
-if [ "$longonly" != "YES" ]; then
+#if [ "$longonly" != "YES" ]; then
 for file in "${files[@]}"; do
 	# this is very brittle
 	subject="${file:0:5}"
@@ -405,7 +414,7 @@ if [ "$recononly" == "YES" ]; then
 	exciting
 fi
 
-fi # close "$longonly" != "YES" conditional
+#fi # close "$longonly" != "YES" conditional
 
 freshlog "Longitudinal processing"
 
