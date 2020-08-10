@@ -32,7 +32,6 @@ Flags explained
 
 ## Example Usage
 
-
 ### slurm submission example for Trinity College Clusters
 
 #### Run all workflows
@@ -41,53 +40,101 @@ Flags explained
 #SBATCH -N 1
 #SBATCH -p compute
 #SBATCH -J "fresh"
-#SBATCH -U Project Code ## update this
 #SBATCH -t 4-00:00:00
+
+cd $dir
 
 module load apps fresh
 
-fresh -s 00000000001 -f 00000000001_w1.nii -w w1 -f 00000000001_w2.nii -w w2 -f 00000000001_w3.nii -w w3
+fresh -f s5519_w1_T1_GR_FP.nii.gz -f s5519_w1_T2_GR_FP.nii.gz -f s5519_w2_T1_GR_FP.nii.gz -f s5519_w2_T2_GR_FP.nii.gz -f s5519_w3_T1_GR_FP.nii.gz -f s5519_w3_T2_GR_F
+P.nii.gz
 ```
 
-This runs all the pre-processing, `recon-all -all` and longitudinal steps for the 00000000001 subject ID on 3 input files, 00000000001_w2.nii, 00000000001_w2.nii and 00000000001_w3.nii, for 3 corresponding time series, w1, w2 and w3.
+This runs all the pre-processing, `recon-all -all` and longitudinal steps for the supplied files. 
 
 #### Run reccon-all -all workflows only
 
-Specify the `-r` flag with `fresh`, e.g.
+Specify the `-r` flag with `fresh`. Leave the other settings, such as the `#SBATCH` directives, etc, as is.
 
+E.g.
 ```
-#!/bin/sh
-#SBATCH -N 1
-#SBATCH -p compute
-#SBATCH -J "fresh"
-#SBATCH -U Project Code ## update this
-#SBATCH -t 4-00:00:00
-
-module load apps fresh
-
-fresh -s 00000000001 -r -f 00000000001_w1.nii -w w1 -f 00000000001_w2.nii -w w2 -f 00000000001_w3.nii -w w3
+fresh -r -f s5519_w1_T1_GR_FP.nii.gz -f s5519_w1_T2_GR_FP.nii.gz -f s5519_w2_T1_GR_FP.nii.gz -f s5519_w2_T2_GR_FP.nii.gz -f s5519_w3_T1_GR_FP.nii.gz -f s5519_w3_T2_GR_F
+P.nii.gz
 ```
 
 Only the recon-all -all pipelines are run, the longitudinal are skipped
 
 #### Run longitudinal workflows only
 
-Specify the `-l` flag with `fresh`, e.g.
+Specify the `-l` flag with `fresh`. Leave the other settings, such as the `#SBATCH` directives, etc, as is.
 
+E.g.
 ```
+fresh -l -f s5519_w1_T1_GR_FP.nii.gz -f s5519_w1_T2_GR_FP.nii.gz -f s5519_w2_T1_GR_FP.nii.gz -f s5519_w2_T2_GR_FP.nii.gz -f s5519_w3_T1_GR_FP.nii.gz -f s5519_w3_T2_GR_F
+P.nii.gz
+```
+
+Only the longitudinal pipelines are run, the recon-all -all are skipped.
+
+## frwap
+
+Simple, interactive, wrapper for running fresh on the contents of a directory.
+
+It will look for the relevant file types in a supplied directory and submit them all to the queue for you.
+
+### fwrap flags
+
+* `-d` `<directory>` directory to work in, defaults to current working directory if not specified"
+* `-f` `<file signifier>` file signifier, defaults to GR_FP.nii.gz if not set"
+* `-v` verbose mode"
+
+### fwrap usage
+
+Firstly, load the module: `module load apps fresh`
+
+To ust work in the current directory: `fwrap` and it will guide you through the process.
+
+Specify a different directory: `fwrap -d /path/to/directory`
+
+First you will be asked to choose one from the following:
+1. All steps
+2. The `recon-all -all` pre-processing steps only
+3. The longitudinal steps only
+
+Specify 1, 2 or 3 as appropriate.
+
+Next you will be asked to confirm if the generated submission is correct or not. If it is press `y` and it will be submitted to be processed or `n` if there is a problem with it and the submission will be cancelled.
+
+Here is an example:
+```
+$ fwrap
+Directory to work on = /projects/pi-bokdea/HPC_19_01070/test_sean/T2/Test-T2-3/20200623/test4
+The file signifier, (pattern used to signify a file is one fresh should be run on), = GR_FP.nii.gz
+
+Choose one of the following
+1 - do all steps, i.e. recon-all -all pre-processing & longitudinal steps
+2 - do only the recon-all -all pre-processing steps
+3 - do only the longitudinal steps
+Choose (1, 2 or 3)? 2
+Here is the generated submission file:
+
 #!/bin/sh
 #SBATCH -N 1
 #SBATCH -p compute
 #SBATCH -J "fresh"
-#SBATCH -U Project Code ## update this
 #SBATCH -t 4-00:00:00
+
+cd /projects/pi-bokdea/HPC_19_01070/test_sean/T2/Test-T2-3/20200623/test4
 
 module load apps fresh
 
-fresh -s 00000000001 -l -f 00000000001_w1.nii -w w1 -f 00000000001_w2.nii -w w2 -f 00000000001_w3.nii -w w3
-```
+fresh -r -f s5519_w1_T1_GR_FP.nii.gz -f s5519_w1_T2_GR_FP.nii.gz -f s5519_w2_T1_GR_FP.nii.gz -f s5519_w2_T2_GR_FP.nii.gz -f s5519_w3_T1_GR_FP.nii.gz -f s5519_w3_T2_GR_F
+P.nii.gz
 
-Only the longitudinal pipelines are run, the recon-all -all are skipped.
+Is that correct? (y/n)? y
+submitting /projects/pi-bokdea/HPC_19_01070/test_sean/T2/Test-T2-3/20200623/test4/sbatch.sh to the queue
+Submitted batch job 291190
+```
 
 ## Installation
 
@@ -103,29 +150,7 @@ $ git clone https://github.com/smcgrat/fresh.git
 This is a working repo and is subject to change. There will be a catalog of commit's for known working versions of fresh.
 
 1. Dec 03, 2019 - first working known good version: `$ git checkout b6b0b9545cbb10e3334388a80d04666742da4e60`
-
-## Associating a file with its corresponding time series or wave reference
-
-When doing the `recon-all -i ...` step `fresh` is working on multiple files, each with its own corresponding time series or wave reference. The way `fresh` associates these two elements together is _very_ naive. It assumes the order it receives them in is the order of association. E.g.
-```
-fresh -f file1 -w w1 -f file2 -w w2 -f file3 -w w3 ...
-```
-Which maps as follows:
-
-| file | time series point |
-| --- | --- |
-| file1 | w1 |
-| file2 | w2 |
-| file3 | w3 |
-
-If these are not supplied in this order the wrong file will be associated with the wrong time series point.
-
-The following should also work though:
-```
-fresh -f file1 -f file2 -w w1 -w w2 ...
-```
-
-The `do_recon_all_prefix` function in `fresh` which does the `recon-all -i ...` step iterates through one array, (the files one), to get its corresponding item in a second array (waves/ time series points). Thus how the order is achieved.
+2. Aug 10, 2020 - next working known good version: `$ git checkout b6b0b9545cbb10e3334388a80d04666742da4e60`
 
 ## File naming convention assumptions
 
@@ -137,14 +162,10 @@ The components of the file name convention are:
 
 1. Subject ID
 2. Wave
-3. Resampling, i.e. `_rs`
+3. Resampling, i.e. `_RS`, if done.
 
-This leads to following structure example: `subjectID_resampled_wave`.
+This leads to following structure example: `subjectID_wave_RS`.
 
-If data has not been re-sampled `fresh` must be explicitly informed of this:
-```
-$ fresh -n ...
-```
 
 ```
                 _ _   _             

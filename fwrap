@@ -21,7 +21,7 @@ say() {
 }
 
 # get the flags
-while getopts "d:f:vrlh" OPTION
+while getopts "d:f:vh" OPTION
 do
 	case $OPTION in
 		d)
@@ -32,12 +32,6 @@ do
 			;;
 		v)
 			verbose="YES"
-			;;
-		r)
-			pre_process_only="YES"
-			;;
-		l)
-			long_only="YES"
 			;;
 		h)
 			usage
@@ -76,12 +70,22 @@ freshline_all="fresh ${targetfiles[@]}" # everything
 freshline_ppo="fresh -r ${targetfiles[@]}" # pre-processing only
 freshline_lon="fresh -l ${targetfiles[@]}" # longitudinal only
 
-if [ "$pre_process_only" == "YES" ]; then
+echo ""
+echo "Choose one of the following"
+echo "1 - do all steps, i.e. recon-all -all pre-processing & longitudinal steps"
+echo "2 - do only the recon-all -all pre-processing steps"
+echo "3 - do only the longitudinal steps"
+read -p "Choose (1, 2 or 3)? "
+if [ $REPLY == "1" ]; then
+	echo "Doing all steps"
+	freshline="$freshline_all"
+elif [ $REPLY == "2" ]; then
 	freshline="$freshline_ppo"
-elif [ "$long_only" == "YES" ]; then
+elif [ $REPLY == "3" ]; then
 	freshline="$freshline_lon"
 else
-	freshline="$freshline_all"
+	echo "Invalid choice, exiting without doing anything"
+	exit 2
 fi
 
 say "freshline = "$freshline""
