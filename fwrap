@@ -1,0 +1,122 @@
+#!/bin/bash
+
+description() {
+	echo "fwrap - Simple, interactive, wrapper for running fresh on the contents of a directory"
+}
+
+usage() {
+	description
+	echo "flags:"
+	echo "	-d <directory> directory to work in, defaults to current working directory if not specified"
+	echo "	-f <file signifier> file signifier, defaults to GR_FP.nii.gz if not set"
+	echo "	-v verbose mode"
+	echo "	-r pre-processing steps only, i.e. no longitudinal steps"
+	echo "	-l longitudinal steps only, i.e. no pre-processing steps"
+}
+
+say() {
+	if [ "$verbose" == "YES" ]; then
+		echo "$*"
+	fi
+}
+
+# get the flags
+while getopts "d:f:vrlh" OPTION
+do
+	case $OPTION in
+		d)
+			dir=$OPTARG
+			;;
+		f)
+			file_signifier=$OPTARG
+			;;
+		v)
+			verbose="YES"
+			;;
+		r)
+			pre_process_only="YES"
+			;;
+		l)
+			long_only="YES"
+			;;
+		h)
+			usage
+			exit
+			;;
+	esac
+done
+
+if [ -z "$dir" ]; then
+	dir=$(pwd)
+fi
+echo "Directory to work on = "$dir""
+
+if [ -z "$file_signifier"]; then
+	file_signifier="GR_FP.nii.gz"
+fi
+echo "The file signifier, (pattern used to signify a file is one fresh should be run on), = $file_signifier"
+
+# get the files to work on
+declare -a allfiles
+declare -a targetfiles
+allfiles=($dir/*)
+for file in "${allfiles[@]}"; do
+	target_file_check=$(echo $file | grep "$file_signifier")
+	if [ -n "$target_file_check" ]; then
+		say "file $file is a target file"
+		filename=$(basename $file)
+		say "filename = $filename - adding to targetfiles array"
+		say "targetfiles contents BEFORE ${targetfiles[@]}"
+		targetfiles=("${targetfiles[@]}" "-f $filename" )
+		say "targetfiles contents AFTER ${targetfiles[@]}"
+	fi
+done
+
+freshline_all="fresh ${targetfiles[@]}" # everything
+freshline_ppo="fresh -r ${targetfiles[@]}" # pre-processing only
+freshline_lon="fresh -l ${targetfiles[@]}" # longitudinal only
+
+if [ "$pre_process_only" == "YES" ]; then
+	freshline="$freshline_ppo"
+elif [ "$long_only" == "YES" ]; then
+	freshline="$freshline_lon"
+else
+	freshline="$freshline_all"
+fi
+
+say "freshline = "$freshline""
+
+sbatch_file="$dir/sbatch.sh"
+cat <<EOF > $sbatch_file
+#!/bin/sh
+#SBATCH -N 1
+#SBATCH -p compute
+#SBATCH -J "fresh"
+#SBATCH -t 4-00:00:00
+
+cd $dir
+
+module load apps fresh
+
+$freshline
+EOF
+
+echo "Here is the generated submission file:"
+echo ""
+cat $sbatch_file
+echo ""
+
+read -p "Is that correct? (y/n)? "
+if [ $REPLY == "y" ]; then
+	echo "submitting $sbatch_file to the queue"
+	sbatch $sbatch_file
+else
+	echo "y not entered, exiting"
+	echo "deleting $sbatch_file"
+	rm $sbatch_file
+	echo "Exiting without doing anything else"
+	exit 0
+fi
+
+
+exit 0
