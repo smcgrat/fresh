@@ -386,7 +386,9 @@ for file in "${files[@]}"; do
 	freshlog "step of their T1 files hadn't been created already. Those T2"
 	freshlog "files get added to another array. Iterate through it."
 	for file in "${backlog[@]}"; do
-		pp2 $file
+		if [ "$longonly" != "YES" ]; then
+			pp2 $file
+		fi
 	done
 
 done
@@ -401,8 +403,10 @@ echo ${uniqwaves[@]}
 
 freshlog "stage 3 pre-processing, segment*.sh"
 for wave in "${uniqwaves[@]}"; do
-	pp3 "$subject" "$wave"
-	# this defaults the subject id to whatever it was last set at, may be an issue!?
+	if [ "$longonly" != "YES" ]; then
+		pp3 "$subject" "$wave"
+		# this defaults the subject id to whatever it was last set at, may be an issue!?
+	fi
 done
 
 freshlog "Preprocessing steps finished"
