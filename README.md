@@ -143,12 +143,16 @@ Submitted batch job 292646
 
 ## Installation
 
+**Note**: fresh is already installed on some of the TCHPC clusters so there is no need to install it if you are using Lonsdale or Kelvin. To use fresh on those systems load the relevant module with: `module load apps fresh`.
+
+If you are installing fresh on another system it should just be a matter of downloading it from github and ensuring your path knows where to look for it.
+
 1. Download fresh
 ```
 $ git clone https://github.com/smcgrat/fresh.git
 ```
 
-2. Add the `fresh` script to your path. E.g. `module load apps fresh` on the TCHPC clusters or on a differrent system you could add `alias fresh="/path/to/fresh"` to your `.bashrc` file.
+2. Add the `fresh` script to your path. you could add `alias fresh="/path/to/fresh"` to your `.bashrc` file.
 
 ### Installation of a specific version of fresh
 
