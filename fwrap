@@ -111,12 +111,21 @@ fi
 
 say "freshline = "$freshline""
 
-sbatch_file="$dir/sbatch.sh"
+# set the name of the sbatch file, in case there are multiple sbatch files to be created in the same directory
+if [ -z "$subject_id" ]; then
+	say "no subject id supplied, setting sbatch file name to include the date and time"
+	sbatch_file="$dir/sbatch-$(date +%F_%T).sh"
+else
+	say "setting the sbatch file name to include the subject id"
+	sbatch_file="$dir/sbatch-$subject_id.sh"
+fi
+echo "sbatch file name: $sbatch_file"
+
 cat <<EOF > $sbatch_file
 #!/bin/sh
 #SBATCH -N 1
 #SBATCH -p compute
-#SBATCH -J "fresh"
+#SBATCH -J "fresh $subject_id" ## will include the subject id if specified for fwrap
 #SBATCH -t 4-00:00:00
 
 cd $dir
@@ -131,10 +140,16 @@ echo ""
 cat $sbatch_file
 echo ""
 
-read -p "Is that correct? (y/n)? "
+read -p "Do you want to keep that file (y/n)? "
 if [ $REPLY == "y" ]; then
-	echo "submitting $sbatch_file to the queue"
-	sbatch $sbatch_file
+	echo "$sbatch_file saved"
+	read -p "Do you want to submit that to the queue now (y/n)?"
+	if [ $REPLY == "y" ]; then
+		echo "submitting $sbatch_file to the queue"
+		sbatch $sbatch_file
+	else
+		echo "y not entered, not submitting to the queue"
+	fi
 else
 	echo "y not entered, exiting"
 	echo "deleting $sbatch_file"
