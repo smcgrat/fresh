@@ -148,7 +148,7 @@ Submitted batch job 292646
 $ git clone https://github.com/smcgrat/fresh.git
 ```
 
-2. Add the `fresh` script to your path. E.g. add `alias fresh="/path/to/fresh"` to your `.bashrc` file.
+2. Add the `fresh` script to your path. E.g. `module load apps fresh` on the TCHPC clusters or on a differrent system you could add `alias fresh="/path/to/fresh"` to your `.bashrc` file.
 
 ### Installation of a specific version of fresh
 
