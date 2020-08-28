@@ -9,6 +9,7 @@ usage() {
 	echo "flags:"
 	echo "	-d <directory> directory to work in, defaults to current working directory if not specified"
 	echo "	-f <file signifier> file signifier, defaults to GR_FP.nii.gz if not set"
+	echo "	-s <Subject ID>, ignores if not explicitly stated"
 	echo "	-v verbose mode"
 	echo "	-r pre-processing steps only, i.e. no longitudinal steps"
 	echo "	-l longitudinal steps only, i.e. no pre-processing steps"
@@ -21,7 +22,7 @@ say() {
 }
 
 # get the flags
-while getopts "d:f:vh" OPTION
+while getopts "d:f:s:vh" OPTION
 do
 	case $OPTION in
 		d)
@@ -29,6 +30,9 @@ do
 			;;
 		f)
 			file_signifier=$OPTARG
+			;;
+		s)
+			subject_id=$OPTARG
 			;;
 		v)
 			verbose="YES"
@@ -49,26 +53,43 @@ if [ -z "$file_signifier"]; then
 	file_signifier="GR_FP.nii.gz"
 fi
 echo "The file signifier, (pattern used to signify a file is one fresh should be run on), = $file_signifier"
+echo "(If set) Subject ID: $subject_id (if blank none specified)"
 
 # get the files to work on
 declare -a allfiles
 declare -a targetfiles
 allfiles=($dir/*)
 for file in "${allfiles[@]}"; do
-	target_file_check=$(echo $file | grep "$file_signifier")
-	if [ -n "$target_file_check" ]; then
-		say "file $file is a target file"
+	target_file_type_check=$(echo $file | grep "$file_signifier")
+	target_file_subjectid_check=$(echo $file | grep "$subject_id")
+	say "targetfiles contents BEFORE ${targetfiles[@]}"
+	if [ -n "$target_file_type_check" ]; then
+		say "file $file matches target file type"
 		filename=$(basename $file)
-		say "filename = $filename - adding to targetfiles array"
-		say "targetfiles contents BEFORE ${targetfiles[@]}"
-		targetfiles=("${targetfiles[@]}" "-f $filename" )
-		say "targetfiles contents AFTER ${targetfiles[@]}"
+		if [ -z "$subject_id" ]; then
+			say "no explicit subject id specified"
+			say "filename = $filename - adding to targetfiles array"
+			targetfiles=("${targetfiles[@]}" "-f $filename" )
+		elif [ -n "$target_file_subjectid_check" ]; then
+			say "file: $file matches the specificed subject id: $subject_id"
+			say "filename = $filename - adding to targetfiles array"
+			targetfiles=("${targetfiles[@]}" "-f $filename" )
+		else
+			say "file: $file does not match the specificed subject id: $subject_id -- NOT adding to targetfiles array"
+		fi
 	fi
+	say "targetfiles contents AFTER ${targetfiles[@]}"
 done
 
 freshline_all="fresh ${targetfiles[@]}" # everything
 freshline_ppo="fresh -r ${targetfiles[@]}" # pre-processing only
 freshline_lon="fresh -l ${targetfiles[@]}" # longitudinal only
+
+if [ ${#targetfiles[@]} -eq 0 ]; then
+	echo "targetfiles array doesn't appear to have any elements in it"
+	echo "that suggests there are no files to be processed, exiting"
+	exit 0
+fi
 
 echo ""
 echo "Choose one of the following"

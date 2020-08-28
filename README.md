@@ -84,17 +84,20 @@ It will look for the relevant file types in a supplied directory and submit them
 
 ### fwrap flags
 
-* `-d` `<directory>` directory to work in, defaults to current working directory if not specified"
-* `-f` `<file signifier>` file signifier, defaults to GR_FP.nii.gz if not set"
+* `-d` `<directory>` directory to work in, defaults to current working directory if not specified
+* `-f` `<file signifier>` file signifier, defaults to GR_FP.nii.gz if not set
+* `-s` `<subject id>` Subject ID, optional. If not specified processes for all subject id's it finds
 * `-v` verbose mode"
 
 ### fwrap usage
 
 Firstly, load the module: `module load apps fresh`
 
-To ust work in the current directory: `fwrap` and it will guide you through the process.
+To just work in the current directory: `fwrap` and it will guide you through the process.
 
 Specify a different directory: `fwrap -d /path/to/directory`
+
+Specify a certain Subject ID so other Subject ID's will be ignored: `fwrap -s 1234`
 
 First you will be asked to choose one from the following:
 1. All steps
@@ -108,14 +111,16 @@ Next you will be asked to confirm if the generated submission is correct or not.
 Here is an example:
 ```
 $ fwrap
-Directory to work on = /projects/pi-bokdea/HPC_19_01070/test_sean/T2/Test-T2-3/20200623/test4
+Directory to work on = /projects/test5
 The file signifier, (pattern used to signify a file is one fresh should be run on), = GR_FP.nii.gz
+(If set) Subject ID:  (if blank none specified)
 
 Choose one of the following
 1 - do all steps, i.e. recon-all -all pre-processing & longitudinal steps
 2 - do only the recon-all -all pre-processing steps
 3 - do only the longitudinal steps
-Choose (1, 2 or 3)? 2
+Choose (1, 2 or 3)? 1
+Doing all steps
 Here is the generated submission file:
 
 #!/bin/sh
@@ -124,16 +129,16 @@ Here is the generated submission file:
 #SBATCH -J "fresh"
 #SBATCH -t 4-00:00:00
 
-cd /projects/pi-bokdea/HPC_19_01070/test_sean/T2/Test-T2-3/20200623/test4
+cd /projects/test5
 
 module load apps fresh
 
-fresh -r -f s5519_w1_T1_GR_FP.nii.gz -f s5519_w1_T2_GR_FP.nii.gz -f s5519_w2_T1_GR_FP.nii.gz -f s5519_w2_T2_GR_FP.nii.gz -f s5519_w3_T1_GR_FP.nii.gz -f s5519_w3_T2_GR_F
-P.nii.gz
+fresh -f s5519_w1_T1_GR_FP.nii.gz -f s5519_w1_T2_GR_FP.nii.gz -f s5519_w2_T1_GR_FP.nii.gz -f s5519_w2_T2_GR_FP.nii.gz -f s5519_w3_T1_GR_FP.nii.gz -f s5519_w3_T2_GR_FP.n
+ii.gz
 
 Is that correct? (y/n)? y
-submitting /projects/pi-bokdea/HPC_19_01070/test_sean/T2/Test-T2-3/20200623/test4/sbatch.sh to the queue
-Submitted batch job 291190
+submitting /projects/test5/sbatch.sh to the queue
+Submitted batch job 292646
 ```
 
 ## Installation
