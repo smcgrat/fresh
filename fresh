@@ -206,62 +206,53 @@ function do_longitudianal {
 		exciting
 	fi
 
-	## sanity check to ensure multiple time points here
-	if [ ${#uniqwaves[@]} -gt 1 ]; then
-		freshlog "Detected there are ${#uniqwaves[@]} time points, which is  more than 1 time series or wave"
-		freshlog "I.e. this is longitudianal data - Moving on to process it longitudianally"
+	freshlog "Detected there are ${#uniqwaves[@]} time points"
 
-		env_setup stable
+	env_setup stable
 
-		## recon-all -base has the following format
-		## recon-all -base "$subject""base" -tp $subject_$timepoint1 -tp $subject_timepoint2 -tp $subject_timepoint3 -all
-		## thus we need to build an array of the waves and pass them to it
-		for wave in "${uniqwaves[@]}"
-		do
-			local timepointrefs=("${timepointrefs[@]}" "-tp" "$subject""_""$wave")
-		done
+	## recon-all -base has the following format
+	## recon-all -base "$subject""base" -tp $subject_$timepoint1 -tp $subject_timepoint2 -tp $subject_timepoint3 -all
+	## thus we need to build an array of the waves and pass them to it
+	for wave in "${uniqwaves[@]}"
+	do
+		local timepointrefs=("${timepointrefs[@]}" "-tp" "$subject""_""$wave")
+	done
 
-		sane recon-all -base "$subject""base" "${timepointrefs[@]}" -all
+	sane recon-all -base "$subject""base" "${timepointrefs[@]}" -all
 
-		lastwave=$(echo "${uniqwaves[*]}" | sort -nr | awk '{print $NF}')
-		freshlog "Determining the last time series to be $lastwave"
-			## `--> thought this step only ran on last time point but it runs on all
-			##			keeping the variable incase it comes in useful elsewhere
+	lastwave=$(echo "${uniqwaves[*]}" | sort -nr | awk '{print $NF}')
+	freshlog "Determining the last time series to be $lastwave"
+		## `--> thought this step only ran on last time point but it runs on all
+		##			keeping the variable incase it comes in useful elsewhere
 
-		for wave in "${uniqwaves[@]}"
-		do
-			sane recon-all -long "$subject""_""$wave" "$subject""base" -all
-		done
+	for wave in "${uniqwaves[@]}"
+	do
+		sane recon-all -long "$subject""_""$wave" "$subject""base" -all
+	done
 
-		env_setup dev
+	env_setup dev
 
-		freshlog "Starting segmentHA_T1_long.sh step"
-		sane segmentHA_T1_long.sh "$subject"base
+	freshlog "Starting segmentHA_T1_long.sh step"
+	sane segmentHA_T1_long.sh "$subject"base
 
-		freshlog "Starting segmentBS.sh steps"
+	freshlog "Starting segmentBS.sh steps"
 
-		for wave in "${uniqwaves[@]}"
-		do
-			sane segmentBS.sh "$subject""_""$wave".long."$subject"base
-		done
+	for wave in "${uniqwaves[@]}"
+	do
+		sane segmentBS.sh "$subject""_""$wave".long."$subject"base
+	done
 
-		freshlog "Finished segmentBS.sh steps"
+	freshlog "Finished segmentBS.sh steps"
 
-		freshlog "Starting segmentThalamicNuclei.sh steps"
+	freshlog "Starting segmentThalamicNuclei.sh steps"
 
-		for wave in "${uniqwaves[@]}"
-		do
-			sane segmentThalamicNuclei.sh "$subject""_""$wave".long."$subject"base
-		done
+	for wave in "${uniqwaves[@]}"
+	do
+		sane segmentThalamicNuclei.sh "$subject""_""$wave".long."$subject"base
+	done
 
-		freshlog "Finished longitudianal steps"
-		freshlog "# ------------------------ #"
-
-	else
-                freshlog "Detected there are ${#waves[@]} time points, which is less than 2 time series or waves"
-                freshlog "I.e. this does not appear to be longitudianal data - Not running the longitudianal pipelines"
-		freshlog ""
-	fi
+	freshlog "Finished longitudianal steps"
+	freshlog "# ------------------------ #"
 }
 
 # get the flags
