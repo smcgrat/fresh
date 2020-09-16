@@ -87,6 +87,7 @@ It will look for the relevant file types in a supplied directory and submit them
 * `-d` `<directory>` directory to work in, defaults to current working directory if not specified
 * `-f` `<file signifier>` file signifier, defaults to GR_FP.nii.gz if not set
 * `-s` `<subject id>` Subject ID, optional. If not specified processes for all subject id's it finds
+* `-e` `<email address>, optional, the queue will send emails to this address`
 * `-v` verbose mode"
 
 ### fwrap usage
@@ -98,6 +99,8 @@ To just work in the current directory: `fwrap` and it will guide you through the
 Specify a different directory: `fwrap -d /path/to/directory`
 
 Specify a certain Subject ID so other Subject ID's will be ignored: `fwrap -s 1234`
+
+Specify an email address to receive notifications from slurm about the job: `fwrap -e user@email.com`
 
 First you will be asked to choose one from the following:
 1. All steps

@@ -10,6 +10,7 @@ usage() {
 	echo "	-d <directory> directory to work in, defaults to current working directory if not specified"
 	echo "	-f <file signifier> file signifier, defaults to GR_FP.nii.gz if not set"
 	echo "	-s <Subject ID>, ignores if not explicitly stated"
+	echo "	-e <email address>, optional, the queue will send emails to this address"
 	echo "	-v verbose mode"
 	echo "	-r pre-processing steps only, i.e. no longitudinal steps"
 	echo "	-l longitudinal steps only, i.e. no pre-processing steps"
@@ -22,7 +23,7 @@ say() {
 }
 
 # get the flags
-while getopts "d:f:s:vh" OPTION
+while getopts "d:f:s:e:vh" OPTION
 do
 	case $OPTION in
 		d)
@@ -33,6 +34,9 @@ do
 			;;
 		s)
 			subject_id=$OPTARG
+			;;
+		e)
+			email_address=$OPTARG
 			;;
 		v)
 			verbose="YES"
@@ -121,12 +125,32 @@ else
 fi
 echo "sbatch file name: $sbatch_file"
 
-cat <<EOF > $sbatch_file
+# build the submission file
+
+# 1. sbatch directives
+cat <<EOF >> $sbatch_file
 #!/bin/sh
 #SBATCH -N 1
 #SBATCH -p compute
 #SBATCH -J "fresh $subject_id" ## will include the subject id if specified for fwrap
 #SBATCH -t 4-00:00:00
+EOF
+
+# 2. email notifications, if specified
+if [ -n "$email_address" ]; then
+
+cat <<EOF >> $sbatch_file
+#SBATCH --mail-user=$email_address
+#SBATCH --mail-type=ALL
+
+EOF
+
+else
+	echo "no email address specified"
+fi
+
+# 3. fresh stuff
+cat <<EOF >> $sbatch_file
 
 cd $dir
 
